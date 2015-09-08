@@ -114,12 +114,21 @@ class ImageView(QGraphicsView):
         global FrameRadius
         if Debug:
             print(event.key())
-        if event.key() == Qt.Key_Plus:
+        key = event.key()
+        if key == Qt.Key_Plus:
             FrameRadius += 1.0
             self.viewport().update()
-        elif event.key() == Qt.Key_Minus:
+        elif key == Qt.Key_Minus:
             FrameRadius = max(0, FrameRadius - 1.0)
             self.viewport().update()
+        elif key == Qt.Key_S:
+            # Save collage to output file
+            self.scene().clearSelection()
+            image = QImage(CollageSize.width(), CollageSize.height(), QImage.Format_RGB32)
+            image.fill(Qt.black)
+            painter = QPainter(image)
+            self.render(painter)
+            image.save("out.png")
         else:
         # Pass event to default handler
             super(ImageView, self).keyReleaseEvent(event)
