@@ -10,7 +10,7 @@ from PyQt4.QtOpenGL import *
 
 RotOffset   = 5.0
 ScaleOffset = 0.1
-MaxZoom     = 2.0
+MaxZoom     = 1.0
 FrameRadius = 15.0
 FrameWidth  = 10.0
 CollageSize = QRectF(0, 0, 1024, 1024)
@@ -116,9 +116,11 @@ class ImageView(QGraphicsView):
             print(event.key())
         key = event.key()
         if key == Qt.Key_Plus:
+            # Increase frame width
             FrameRadius += 1.0
             self.viewport().update()
         elif key == Qt.Key_Minus:
+            # Decrease frame width
             FrameRadius = max(0, FrameRadius - 1.0)
             self.viewport().update()
         elif key == Qt.Key_S:
@@ -136,6 +138,78 @@ class ImageView(QGraphicsView):
     def resizeEvent(self, event):
         self.fitInView(CollageSize, Qt.KeepAspectRatio)
 
+
+def addPhoto(rect):
+    frame = PhotoFrameItem(QRect(0, 0, rect.width(), rect.height()))
+    frame.setPos(rect.x(), rect.y())
+    photo = PhotoItem(QPixmap(os.getcwd() + '/test.png'))
+    photo.setParentItem(frame)
+    # Center photo in frame
+    photo.setPos(rect.width()/2 - photo.pixmap().width()/2,
+                 rect.height()/2 - photo.pixmap().height()/2)
+    # Add frame to scene
+    fr = scene.addItem(frame)
+
+
+def create_3_2B_3_collage():
+    # First column
+    x = 0
+    photoWidth  = CollageSize.width() / 4
+    photoHeight =  CollageSize.height() / 4
+    for y in range(0, 4):
+        addPhoto(QRect(x, y * photoHeight, photoWidth, photoHeight))
+        #addPhoto(x * photoWidth, y * photoHeight, photoWidth, photoHeight)
+    # Second column
+    x += photoWidth
+    photoWidth  = CollageSize.width() / 2
+    photoHeight =  CollageSize.height() / 2
+    for y in range(0, 2):
+        addPhoto(QRect(x, y * photoHeight, photoWidth, photoHeight))
+    # Third column
+    x += photoWidth
+    photoWidth  = CollageSize.width() / 4
+    photoHeight =  CollageSize.height() / 3
+    for y in range(0, 3):
+        addPhoto(QRect(x, y * photoHeight, photoWidth, photoHeight))
+
+
+def create_2_2B_2_collage():
+    # First column
+    x = 0
+    photoWidth  = CollageSize.width() / 4
+    photoHeight =  CollageSize.height() / 2
+    for y in range(0, 2):
+        addPhoto(QRect(x, y * photoHeight, photoWidth, photoHeight))
+        #addPhoto(x * photoWidth, y * photoHeight, photoWidth, photoHeight)
+    # Second column
+    x += photoWidth
+    photoWidth  = CollageSize.width() / 2
+    photoHeight =  CollageSize.height() / 2
+    for y in range(0, 2):
+        addPhoto(QRect(x, y * photoHeight, photoWidth, photoHeight))
+    # Third column
+    x += photoWidth
+    photoWidth  = CollageSize.width() / 4
+    photoHeight =  CollageSize.height() / 2
+    for y in range(0, 2):
+        addPhoto(QRect(x, y * photoHeight, photoWidth, photoHeight))
+
+
+def createGridCollage(numx , numy):
+    photoWidth  = CollageSize.width() / numx
+    photoHeight =  CollageSize.height() / numy
+    for x in range(0, numx):
+        for y in range(0, numy):
+            addPhoto(QRect(x * photoWidth, y * photoHeight, photoWidth, photoHeight))
+
+
+def create_3x3_collage():
+    createGridCollage(3, 3)
+
+
+def create_2x2_collage():
+    createGridCollage(2, 2)
+  
 #
 # Main
 #
@@ -165,24 +239,10 @@ if OpenGLRender:
 scene = QGraphicsScene()
 
 # Load pixmap and add it to the scene
-photosX = 2
-photosY = 3
-photoWidth  = CollageSize.width() / photosX
-photoHeight =  CollageSize.height() / photosY
-print("photoWidth=", photoWidth)
-print("photoHeight=", photoHeight)
-for x in range (0, photosX):
-    for y in range (0, photosY):
-        # Create frame and photo
-        frame = PhotoFrameItem(QRect(0, 0, photoWidth, photoHeight))
-        frame.setPos(x * photoWidth, y * photoHeight)
-        photo = PhotoItem(QPixmap(os.getcwd() + '/test.png'))
-        photo.setParentItem(frame)
-        # Center photo in frame
-        photo.setPos(photoWidth/2 - photo.pixmap().width()/2,
-                     photoHeight/2 - photo.pixmap().height()/2)
-        # Add frame to scene
-        fr = scene.addItem(frame)
+#create_3_2B_3_collage()
+create_2_2B_2_collage()
+#create_3x3_collage()
+#create_2x2_collage()
 
 gfxview.setScene(scene)
 
