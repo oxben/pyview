@@ -18,6 +18,7 @@ CollageSize = QRectF(0, 0, 1024, 1024)
 Debug = True
 OpenGLRender = False
 
+
 class PhotoFrameItem(QGraphicsItem):
 
     def __init__(self, rect, parent = None, scene = None):
@@ -30,27 +31,16 @@ class PhotoFrameItem(QGraphicsItem):
         return QRectF(self.rect)
 
     def paint(self, painter, option, widget = None):
-        # painter.fillRect(QRectF(self.rect.left(), self.rect.top(),
-        #                         self.rect.width(), FrameRadius/2), Qt.white)
-        # painter.fillRect(QRectF(self.rect.left(), self.rect.top(),
-        #                         FrameRadius/2, self.rect.height()), Qt.white)
-        # painter.fillRect(QRectF(self.rect.right()-FrameRadius/2, self.rect.top(),
-        #                         FrameRadius/2, self.rect.height()), Qt.white)
-        # painter.fillRect(QRectF(self.rect.left(), self.rect.bottom()-FrameRadius/2,
-        #                         self.rect.width(), FrameRadius/2), Qt.white)
-
         pen = painter.pen()
         pen.setColor(Qt.white)
         #pen.setWidth(FrameWidth)
         pen.setWidth(FrameRadius)
         painter.setPen(pen)
         painter.setRenderHint(QPainter.Antialiasing)
-        # painter.drawRoundedRect(self.rect.left()+FrameRadius/2, self.rect.top()+FrameRadius/2,
-        #                         self.rect.width()-FrameRadius, self.rect.height()-FrameRadius,
-        #                         FrameRadius, FrameRadius)
         painter.drawRoundedRect(self.rect.left(), self.rect.top(),
                                 self.rect.width(), self.rect.height(),
                                 FrameRadius, FrameRadius)
+
 
 class PhotoItem(QGraphicsPixmapItem):
 
@@ -60,15 +50,8 @@ class PhotoItem(QGraphicsPixmapItem):
         origx = self.pixmap().size().width()/2
         origy = self.pixmap().size().height()/2
         self.setTransformOriginPoint(origx, origy)
-        print("origin:", origx, origy)
         # Use bilinear filtering
         self.setTransformationMode(Qt.SmoothTransformation)
-        # XXX: setTransformationMode() seems buggy for scaling when using setTransform()
-        # So translate before and after scaling
-        # Example:
-        # transform = self.pixmap.transform()
-        # transform.translate(256.0, 256.0).scale(1.1, 1.1).rotate(10).translate(-256.0, -256.0)
-        # self.pixmap.setTransform(transform)
         # Set flags
         self.setFlags(self.flags() |  
                       QGraphicsItem.ItemIsMovable | 
@@ -115,22 +98,6 @@ class PhotoItem(QGraphicsPixmapItem):
         elif modifiers == (Qt.ShiftModifier|Qt.ControlModifier):
             self.setScale(scale)
             self.setRotation(rot)
-
-    # def mouseMoveEvent(self, event):
-    #     if event.buttons() == Qt.LeftButton:
-    #         self.setPos(self.pos() + (event.pos() - self.dragOrig))
-    #         self.dragOrig = event.pos()
-
-    # def mousePressEvent(self, event):
-    #     if event.button() == Qt.LeftButton:
-    #         if Debug:
-    #             print("Left button pressed")
-    #         self.dragOrig = event.pos()
-    #         app.setOverrideCursor(Qt.ClosedHandCursor)
-
-    # def mouseReleaseEvent (self, event):
-    #     if event.button() == Qt.LeftButton:
-    #         app.restoreOverrideCursor()
 
 
 class ImageView(QGraphicsView):
