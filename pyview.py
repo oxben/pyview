@@ -4,6 +4,7 @@
 import math
 import os
 import sys
+from urllib.parse import urlparse
 from PyQt4.QtCore import *
 from PyQt4.QtGui import *
 from PyQt4.QtOpenGL import *
@@ -47,10 +48,7 @@ class PhotoItem(QGraphicsPixmapItem):
 
     def __init__(self, pixmap, parent = None, scene = None):
         super(PhotoItem, self).__init__(pixmap, parent, scene)
-        # Set transform origin to center of pixmap
-        origx = self.pixmap().size().width()/2
-        origy = self.pixmap().size().height()/2
-        self.setTransformOriginPoint(origx, origy)
+        self.reset()
         # Use bilinear filtering
         self.setTransformationMode(Qt.SmoothTransformation)
         # Set flags
@@ -59,6 +57,26 @@ class PhotoItem(QGraphicsPixmapItem):
                       QGraphicsItem.ItemIsFocusable |
                       QGraphicsItem.ItemStacksBehindParent)
         self.setAcceptHoverEvents(True)
+        self.setAcceptDrops(True)
+
+    def setPixmap(self, pixmap):
+        print("setPixmap():", pixmap.width(), pixmap.height())
+        super(PhotoItem, self).setPixmap(pixmap)
+        self.reset()
+
+    def reset(self):
+        # Center photo in frame
+        if self.parentItem() != None:
+            frameRect = self.parentItem().boundingRect()
+            self.setPos(frameRect.width()/2 - self.pixmap().width()/2,
+                        frameRect.height()/2 - self.pixmap().height()/2)
+        # Set transform origin to center of pixmap
+        origx = self.pixmap().width()/2
+        origy = self.pixmap().height()/2
+        self.setTransformOriginPoint(origx, origy)
+        # Reset transformation
+        self.setScale(1.0)
+        self.setRotation(0.0)
 
     def hoverEnterEvent(self, event):
         # Request keyboard events
@@ -74,6 +92,11 @@ class PhotoItem(QGraphicsPixmapItem):
             # Reset scale and rotation
             self.setScale(1.0)
             self.setRotation(0.0)
+
+    def mouseDoubleClickEvent(self, event):
+        filename = QFileDialog.getOpenFileName(w, 'Open File', os.getcwd())
+        print("Open file:", filename)
+        self.setPixmap(QPixmap(filename))
 
     def wheelEvent(self, event):
         scale = self.scale()
@@ -91,7 +114,8 @@ class PhotoItem(QGraphicsPixmapItem):
             if scale >= ScaleOffset*2:
                 scale -= ScaleOffset
         # Transform based on mouse position
-        self.setTransformOriginPoint(event.pos())
+        # XXX: doesn't work well
+        #self.setTransformOriginPoint(event.pos())
         modifiers = event.modifiers()
         if modifiers == Qt.NoModifier:
             self.setScale(scale)
@@ -100,6 +124,19 @@ class PhotoItem(QGraphicsPixmapItem):
         elif modifiers == (Qt.ShiftModifier|Qt.ControlModifier):
             self.setScale(scale)
             self.setRotation(rot)
+
+    def dragEnterEvent(self, event):
+        if event.mimeData().hasFormat('text/plain'):
+            event.accept()
+        else:
+            event.ignore()
+
+    def dropEvent(self, event):
+        if event.proposedAction() == Qt.CopyAction and event.mimeData().hasText():
+            filePath = urlparse(event.mimeData().text().strip()).path
+            pixmap = QPixmap(filePath)
+            if pixmap.width() > 0:
+                self.setPixmap(pixmap)
 
 
 class ImageView(QGraphicsView):
@@ -140,6 +177,20 @@ class ImageView(QGraphicsView):
     def resizeEvent(self, event):
         self.fitInView(CollageSize, Qt.KeepAspectRatio)
 
+    def wheelEvent(self, event):
+        # Filter wheel events
+        items = self.items(event.pos())
+        if Debug:
+            print(items)
+        if items:
+            for item in items:
+                if isinstance(item, PhotoItem):
+                    super(ImageView, self).wheelEvent(event)
+
+class CollageScene(QGraphicsScene):
+    def __init__(self):
+        super(CollageScene, self).__init__()
+
 
 class loopiter:
     '''Infinite iterator'''
@@ -161,9 +212,7 @@ def addPhoto(rect, filepath):
     frame.setPos(rect.x(), rect.y())
     photo = PhotoItem(QPixmap(filepath))
     photo.setParentItem(frame)
-    # Center photo in frame
-    photo.setPos(rect.width()/2 - photo.pixmap().width()/2,
-                 rect.height()/2 - photo.pixmap().height()/2)
+    photo.reset()
     # Add frame to scene
     fr = scene.addItem(frame)
 
@@ -260,7 +309,7 @@ if OpenGLRender:
     gfxview.setViewport(QGLWidget())
 
 # Add scene
-scene = QGraphicsScene()
+scene = CollageScene()
 
 # Load pixmap and add it to the scene
 create_3_2B_3_collage()
