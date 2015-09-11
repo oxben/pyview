@@ -10,10 +10,11 @@ from PyQt4.QtOpenGL import *
 
 RotOffset   = 5.0
 ScaleOffset = 0.1
-MaxZoom     = 1.0
+MaxZoom     = 2.0
 FrameRadius = 15.0
 FrameWidth  = 10.0
 CollageSize = QRectF(0, 0, 1024, 1024)
+LimitDrag   = True
 
 Debug = True
 OpenGLRender = False
@@ -53,8 +54,8 @@ class PhotoItem(QGraphicsPixmapItem):
         # Use bilinear filtering
         self.setTransformationMode(Qt.SmoothTransformation)
         # Set flags
-        self.setFlags(self.flags() |  
-                      QGraphicsItem.ItemIsMovable | 
+        self.setFlags(self.flags() |
+                      QGraphicsItem.ItemIsMovable |
                       QGraphicsItem.ItemIsFocusable |
                       QGraphicsItem.ItemStacksBehindParent)
         self.setAcceptHoverEvents(True)
@@ -89,7 +90,8 @@ class PhotoItem(QGraphicsPixmapItem):
             rot -= RotOffset
             if scale >= ScaleOffset*2:
                 scale -= ScaleOffset
-
+        # Transform based on mouse position
+        self.setTransformOriginPoint(event.pos())
         modifiers = event.modifiers()
         if modifiers == Qt.NoModifier:
             self.setScale(scale)
@@ -132,17 +134,32 @@ class ImageView(QGraphicsView):
             self.render(painter)
             image.save("out.png")
         else:
-        # Pass event to default handler
+            # Pass event to default handler
             super(ImageView, self).keyReleaseEvent(event)
-    
+
     def resizeEvent(self, event):
         self.fitInView(CollageSize, Qt.KeepAspectRatio)
 
 
-def addPhoto(rect):
+class loopiter:
+    '''Infinite iterator'''
+    def __init__(self, l):
+        self.i = 0
+        self.l = l
+
+    def __iter__(self):
+        return self
+
+    def next(self):
+        item = self.l[self.i]
+        self.i = (self.i + 1)  % len(self.l)
+        return item
+
+
+def addPhoto(rect, filepath):
     frame = PhotoFrameItem(QRect(0, 0, rect.width(), rect.height()))
     frame.setPos(rect.x(), rect.y())
-    photo = PhotoItem(QPixmap(os.getcwd() + '/test.png'))
+    photo = PhotoItem(QPixmap(filepath))
     photo.setParentItem(frame)
     # Center photo in frame
     photo.setPos(rect.width()/2 - photo.pixmap().width()/2,
@@ -152,55 +169,56 @@ def addPhoto(rect):
 
 
 def create_3_2B_3_collage():
+    f = loopiter(filenames)
     # First column
     x = 0
     photoWidth  = CollageSize.width() / 4
-    photoHeight =  CollageSize.height() / 4
-    for y in range(0, 4):
-        addPhoto(QRect(x, y * photoHeight, photoWidth, photoHeight))
-        #addPhoto(x * photoWidth, y * photoHeight, photoWidth, photoHeight)
+    photoHeight =  CollageSize.height() / 3
+    for y in range(0, 3):
+        addPhoto(QRect(x, y * photoHeight, photoWidth, photoHeight), f.next())
     # Second column
     x += photoWidth
     photoWidth  = CollageSize.width() / 2
     photoHeight =  CollageSize.height() / 2
     for y in range(0, 2):
-        addPhoto(QRect(x, y * photoHeight, photoWidth, photoHeight))
-    # Third column
+        addPhoto(QRect(x, y * photoHeight, photoWidth, photoHeight), f.next())
+   # Third column
     x += photoWidth
     photoWidth  = CollageSize.width() / 4
     photoHeight =  CollageSize.height() / 3
     for y in range(0, 3):
-        addPhoto(QRect(x, y * photoHeight, photoWidth, photoHeight))
+        addPhoto(QRect(x, y * photoHeight, photoWidth, photoHeight), f.next())
 
 
 def create_2_2B_2_collage():
+    f = loopiter(filenames)
     # First column
     x = 0
     photoWidth  = CollageSize.width() / 4
     photoHeight =  CollageSize.height() / 2
     for y in range(0, 2):
-        addPhoto(QRect(x, y * photoHeight, photoWidth, photoHeight))
-        #addPhoto(x * photoWidth, y * photoHeight, photoWidth, photoHeight)
+        addPhoto(QRect(x, y * photoHeight, photoWidth, photoHeight), f.next())
     # Second column
     x += photoWidth
     photoWidth  = CollageSize.width() / 2
     photoHeight =  CollageSize.height() / 2
     for y in range(0, 2):
-        addPhoto(QRect(x, y * photoHeight, photoWidth, photoHeight))
+        addPhoto(QRect(x, y * photoHeight, photoWidth, photoHeight), f.next())
     # Third column
     x += photoWidth
     photoWidth  = CollageSize.width() / 4
     photoHeight =  CollageSize.height() / 2
     for y in range(0, 2):
-        addPhoto(QRect(x, y * photoHeight, photoWidth, photoHeight))
+        addPhoto(QRect(x, y * photoHeight, photoWidth, photoHeight), f.next())
 
 
 def createGridCollage(numx , numy):
+    f = loopiter(filenames)
     photoWidth  = CollageSize.width() / numx
     photoHeight =  CollageSize.height() / numy
     for x in range(0, numx):
         for y in range(0, numy):
-            addPhoto(QRect(x * photoWidth, y * photoHeight, photoWidth, photoHeight))
+            addPhoto(QRect(x * photoWidth, y * photoHeight, photoWidth, photoHeight), f.next())
 
 
 def create_3x3_collage():
@@ -209,10 +227,16 @@ def create_3x3_collage():
 
 def create_2x2_collage():
     createGridCollage(2, 2)
-  
+
 #
 # Main
 #
+
+# Parse args
+filenames = []
+for f in sys.argv[1:]:
+    filenames.append(os.path.abspath(f))
+print(filenames)
 
 # Create an PyQT4 application object.
 app = QApplication(sys.argv)
@@ -239,8 +263,8 @@ if OpenGLRender:
 scene = QGraphicsScene()
 
 # Load pixmap and add it to the scene
-#create_3_2B_3_collage()
-create_2_2B_2_collage()
+create_3_2B_3_collage()
+#create_2_2B_2_collage()
 #create_3x3_collage()
 #create_2x2_collage()
 
