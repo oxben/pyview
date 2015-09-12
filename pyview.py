@@ -4,23 +4,25 @@
 import math
 import os
 import sys
-from urllib.parse import urlparse
+from urllib.parse import *
 from PyQt4.QtCore import *
 from PyQt4.QtGui import *
 from PyQt4.QtOpenGL import *
 
 RotOffset   = 5.0
-ScaleOffset = 0.1
+ScaleOffset = 0.05
 MaxZoom     = 2.0
 FrameRadius = 15.0
 FrameWidth  = 10.0
-CollageSize = QRectF(0, 0, 1024, 1024)
+CollageAspectRatio = (4.0/3.0)
+CollageSize = QRectF(0, 0, 1024, 1024*CollageAspectRatio)
 LimitDrag   = True
 
 Debug = True
 OpenGLRender = False
 
 
+#-------------------------------------------------------------------------------
 class PhotoFrameItem(QGraphicsItem):
 
     def __init__(self, rect, parent = None, scene = None):
@@ -44,6 +46,7 @@ class PhotoFrameItem(QGraphicsItem):
                                 FrameRadius, FrameRadius)
 
 
+#-------------------------------------------------------------------------------
 class PhotoItem(QGraphicsPixmapItem):
 
     def __init__(self, pixmap, parent = None, scene = None):
@@ -89,9 +92,8 @@ class PhotoItem(QGraphicsPixmapItem):
         if Debug:
             print(event.key())
         if event.key() == Qt.Key_Slash:
-            # Reset scale and rotation
-            self.setScale(1.0)
-            self.setRotation(0.0)
+            # Reset pos, scale and rotation
+            self.reset()
 
     def mouseDoubleClickEvent(self, event):
         filename = QFileDialog.getOpenFileName(w, 'Open File', os.getcwd())
@@ -133,12 +135,14 @@ class PhotoItem(QGraphicsPixmapItem):
 
     def dropEvent(self, event):
         if event.proposedAction() == Qt.CopyAction and event.mimeData().hasText():
-            filePath = urlparse(event.mimeData().text().strip()).path
+            filePath = unquote(urlparse(event.mimeData().text().strip()).path)
+            print(filePath)
             pixmap = QPixmap(filePath)
             if pixmap.width() > 0:
                 self.setPixmap(pixmap)
 
 
+#-------------------------------------------------------------------------------
 class ImageView(QGraphicsView):
 
     def __init__(self, parent=None):
@@ -174,6 +178,10 @@ class ImageView(QGraphicsView):
             # Pass event to default handler
             super(ImageView, self).keyReleaseEvent(event)
 
+    def heightForWidth(self, w):
+        print("heightForWidth(%d)") % (w)
+        return w
+
     def resizeEvent(self, event):
         self.fitInView(CollageSize, Qt.KeepAspectRatio)
 
@@ -187,6 +195,8 @@ class ImageView(QGraphicsView):
                 if isinstance(item, PhotoItem):
                     super(ImageView, self).wheelEvent(event)
 
+
+#-------------------------------------------------------------------------------
 class CollageScene(QGraphicsScene):
     def __init__(self):
         super(CollageScene, self).__init__()
@@ -206,6 +216,8 @@ class loopiter:
         self.i = (self.i + 1)  % len(self.l)
         return item
 
+
+#-------------------------------------------------------------------------------
 
 def addPhoto(rect, filepath):
     frame = PhotoFrameItem(QRect(0, 0, rect.width(), rect.height()))
@@ -283,9 +295,12 @@ def create_2x2_collage():
 
 # Parse args
 filenames = []
-for f in sys.argv[1:]:
-    filenames.append(os.path.abspath(f))
-print(filenames)
+if len(sys.argv) > 1:
+    for f in sys.argv[1:]:
+        filenames.append(os.path.abspath(f))
+        print(filenames)
+else:
+    filenames.append(os.getcwd() + "/photo.png")
 
 # Create an PyQT4 application object.
 app = QApplication(sys.argv)
@@ -295,8 +310,8 @@ w = QWidget()
 
 # Set window title
 w.setWindowTitle("PyView")
-w.resize(512, 512)
-layout = QVBoxLayout()
+w.resize(512, 512*CollageAspectRatio)
+layout = QHBoxLayout()
 w.setLayout(layout)
 
 # Create GraphicsView
@@ -316,6 +331,7 @@ create_3_2B_3_collage()
 #create_2_2B_2_collage()
 #create_3x3_collage()
 #create_2x2_collage()
+#createGridCollage(2, 3)
 
 gfxview.setScene(scene)
 
