@@ -324,14 +324,25 @@ def create_2x2_collage(scene):
 def create_3x4_collage(scene):
     createGridCollage(scene, 3, 4)
 
+
 #-------------------------------------------------------------------------------
 def usage():
     print('Usage: ' +  os.path.basename(sys.argv[0]) + \
           'image1...imageN')
     print("\nOptions:\n")
     print("  -h         This help message")
+    print("\nCommands:\n")
+    print("  Left Button    Drag image")
+    print("  Wheel          Zoom image")
+    print("  Shift + Wheel  Rotate image")
+    print("  Double Click   Load new image")
+    print("  +/-            Increase/Decrease photo frame")
+    print("  Shift + S      Save as collage")
+    print("  S              Save collage")
+    print("  Numpad /       Reset photo position, scale and rotation")
 
 
+#-------------------------------------------------------------------------------
 def parse_args():
     try:
         opts, args = getopt.getopt(sys.argv[1:], 'h', ['help'])
@@ -355,6 +366,7 @@ def parse_args():
         print(filenames)
 
 
+#-------------------------------------------------------------------------------
 def main():
     # Parse arguments
     parse_args()
