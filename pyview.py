@@ -24,8 +24,8 @@ ScaleOffset = 0.05
 MaxZoom     = 2.0
 FrameRadius = 15.0
 FrameWidth  = 10.0
-CollageAspectRatio = (2.0/3.0)
-CollageSize = QRectF(0, 0, 1024, 1024*CollageAspectRatio)
+CollageAspectRatio = (2.0 / 3.0)
+CollageSize = QRectF(0, 0, 1024, 1024 * CollageAspectRatio)
 LimitDrag   = True
 
 Debug = True
@@ -82,11 +82,11 @@ class PhotoItem(QGraphicsPixmapItem):
         # Center photo in frame
         if self.parentItem() != None:
             frameRect = self.parentItem().boundingRect()
-            self.setPos(frameRect.width()/2 - self.pixmap().width()/2,
-                        frameRect.height()/2 - self.pixmap().height()/2)
+            self.setPos((frameRect.width() / 2) - (self.pixmap().width() / 2),
+                        (frameRect.height() / 2) - (self.pixmap().height() / 2))
         # Set transform origin to center of pixmap
-        origx = self.pixmap().width()/2
-        origy = self.pixmap().height()/2
+        origx = self.pixmap().width() / 2
+        origy = self.pixmap().height() / 2
         self.setTransformOriginPoint(origx, origy)
         # Reset transformation
         self.setScale(1.0)
@@ -124,7 +124,7 @@ class PhotoItem(QGraphicsPixmapItem):
             if Debug:
                 print("Unzoom")
             rot -= RotOffset
-            if scale >= ScaleOffset*2:
+            if scale >= ScaleOffset * 2:
                 scale -= ScaleOffset
         # Transform based on mouse position
         # XXX: doesn't work well
@@ -161,8 +161,6 @@ class ImageView(QGraphicsView):
         # Hide scrollbars
         self.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-        # Connect signals: XXX: Is it necessary?
-        #QMetaObject.connectSlotsByName(self)
 
     def keyReleaseEvent(self, event):
         global FrameRadius
@@ -315,15 +313,15 @@ def main():
     else:
         filenames.append(os.getcwd() + "/photo.png")
 
-    # Create an PyQT4 application object.
+    # Create an PyQt5 application object.
     app = QApplication(sys.argv)
 
-    # The QWidget widget is the base class of all user interface objects in PyQt4.
+    # The QWidget widget is the base class of all user interface objects in PyQt5.
     w = QWidget()
 
     # Set window title
     w.setWindowTitle("PyView")
-    w.resize(512, 512*CollageAspectRatio)
+    w.resize(512, 512 * CollageAspectRatio)
     layout = QHBoxLayout()
     w.setLayout(layout)
 
