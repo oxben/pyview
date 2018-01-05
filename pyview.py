@@ -7,6 +7,7 @@
 # -*- coding: utf-8 -*-
 
 import getopt
+import logging
 import math
 import os
 import sys
@@ -31,15 +32,12 @@ CollageSize = QRectF(0, 0, 1024, 1024 * CollageAspectRatio)
 LimitDrag   = True
 OutFileName = "out.png"
 
-Debug = True
 OpenGLRender = False
 
 filenames = []
 
-
-#-------------------------------------------------------------------------------
-def error(msg):
-    print(("Error: %s\n") % (msg))
+logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger(__name__)
 
 
 #-------------------------------------------------------------------------------
@@ -83,7 +81,7 @@ class PhotoItem(QGraphicsPixmapItem):
         self.setAcceptDrops(True)
 
     def setPixmap(self, pixmap):
-        print("setPixmap():", pixmap.width(), pixmap.height())
+        logger.debug('setPixmap(): %d %d' % (pixmap.width(), pixmap.height()))
         super(PhotoItem, self).setPixmap(pixmap)
         self.reset()
 
@@ -109,29 +107,26 @@ class PhotoItem(QGraphicsPixmapItem):
         self.clearFocus()
 
     def keyReleaseEvent(self, event):
-        if Debug:
-            print(event.key())
+        logger.debug(str(event.key()))
         if event.key() == Qt.Key_Slash:
             # Reset pos, scale and rotation
             self.reset()
 
     def mouseDoubleClickEvent(self, event):
-        filename = QFileDialog.getOpenFileName(None, 'Open File', os.getcwd())
-        print("Open file:", filename)
+        filename, filetype = QFileDialog.getOpenFileName(None, 'Open File', os.getcwd())
+        logger.info('Open image file: %s' % filename)
         self.setPixmap(QPixmap(filename[0]))
 
     def wheelEvent(self, event):
         scale = self.scale()
         rot   = self.rotation()
         if event.delta() > 0:
-            if Debug:
-                print("Zoom")
+            logger.debug('Zoom')
             rot += RotOffset
             if scale < MaxZoom:
                 scale += ScaleOffset
         else:
-            if Debug:
-                print("Unzoom")
+            logger.debug('Unzoom')
             rot -= RotOffset
             if scale >= ScaleOffset * 2:
                 scale -= ScaleOffset
@@ -156,7 +151,7 @@ class PhotoItem(QGraphicsPixmapItem):
     def dropEvent(self, event):
         if event.proposedAction() == Qt.CopyAction and event.mimeData().hasText():
             filePath = unquote(urlparse(event.mimeData().text().strip()).path)
-            print(filePath)
+            logger.debug("File dragged'n'dropped: %s" % filePath)
             pixmap = QPixmap(filePath)
             if pixmap.width() > 0:
                 self.setPixmap(pixmap)
@@ -174,8 +169,7 @@ class ImageView(QGraphicsView):
     def keyReleaseEvent(self, event):
         global FrameRadius
         global OutFileName
-        if Debug:
-            print(event.key())
+        logger.debug('Key event: %d' % event.key())
         modifiers = event.modifiers()
         key = event.key()
         if key == Qt.Key_Plus:
@@ -195,7 +189,7 @@ class ImageView(QGraphicsView):
                 OutFileName, filetype = QFileDialog.getSaveFileName(None, 'Save Collage', os.getcwd())
             elif modifiers == Qt.ControlModifier:
                 return
-            print("Collage saved to file:", OutFileName)
+            logger.info("Collage saved to file: %s" % OutFileName)
 
             self.scene().clearSelection()
             image = QImage(CollageSize.width(), CollageSize.height(), QImage.Format_RGB32)
@@ -212,7 +206,7 @@ class ImageView(QGraphicsView):
             super(ImageView, self).keyReleaseEvent(event)
 
     def heightForWidth(self, w):
-        print("heightForWidth(%d)") % (w)
+        logger.debug('heightForWidth(%d)' % w)
         return w
 
     def resizeEvent(self, event):
@@ -221,8 +215,7 @@ class ImageView(QGraphicsView):
     def wheelEvent(self, event):
         # Filter wheel events
         items = self.items(event.pos())
-        if Debug:
-            print(items)
+        logger.debug('Wheel event: %s' % str(items))
         if items:
             for item in items:
                 if isinstance(item, PhotoItem):
@@ -235,7 +228,7 @@ class CollageScene(QGraphicsScene):
         super(CollageScene, self).__init__()
 
     def addPhoto(self, rect, filepath):
-        print('addPhoto(%s)' % filepath)
+        logger.info('Add image: %s' % filepath)
         frame = PhotoFrameItem(QRect(0, 0, rect.width(), rect.height()))
         frame.setPos(rect.x(), rect.y())
         photo = PhotoItem(QPixmap(filepath))
@@ -347,7 +340,7 @@ def parse_args():
     try:
         opts, args = getopt.getopt(sys.argv[1:], 'h', ['help'])
     except getopt.GetoptError as err:
-        error(str(err))
+        logger.error(str(err))
         self.usage()
         sys.exit(1)
 
@@ -357,13 +350,13 @@ def parse_args():
             sys.exit(0)
 
     if len(args) == 0:
-        error('At least one file must be specified on the command line')
+        logger.error('At least one file must be specified on the command line')
         usage()
         sys.exit(1)
 
     for f in args:
         filenames.append(os.path.abspath(f))
-        print(filenames)
+        logger.debug(str(filenames))
 
 
 #-------------------------------------------------------------------------------
