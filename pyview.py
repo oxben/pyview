@@ -29,6 +29,7 @@ FrameWidth  = 10.0
 CollageAspectRatio = (2.0 / 3.0)
 CollageSize = QRectF(0, 0, 1024, 1024 * CollageAspectRatio)
 LimitDrag   = True
+OutFileName = "out.png"
 
 Debug = True
 OpenGLRender = False
@@ -172,25 +173,40 @@ class ImageView(QGraphicsView):
 
     def keyReleaseEvent(self, event):
         global FrameRadius
+        global OutFileName
         if Debug:
             print(event.key())
+        modifiers = event.modifiers()
         key = event.key()
         if key == Qt.Key_Plus:
             # Increase frame width
             FrameRadius += 1.0
             self.viewport().update()
+
         elif key == Qt.Key_Minus:
             # Decrease frame width
             FrameRadius = max(0, FrameRadius - 1.0)
             self.viewport().update()
+
         elif key == Qt.Key_S:
             # Save collage to output file
+            if (modifiers == Qt.NoModifier and not OutFileName) or \
+               modifiers == Qt.ShiftModifier:
+                OutFileName, filetype = QFileDialog.getSaveFileName(None, 'Save Collage', os.getcwd())
+            elif modifiers == Qt.ControlModifier:
+                return
+            print("Collage saved to file:", OutFileName)
+
             self.scene().clearSelection()
             image = QImage(CollageSize.width(), CollageSize.height(), QImage.Format_RGB32)
             image.fill(Qt.black)
             painter = QPainter(image)
             self.render(painter)
-            image.save("out.png")
+            image.save(OutFileName)
+            # Explicitely delete painter to avoid the following error:
+            # "QPaintDevice: Cannot destroy paint device that is being painted" + SIGSEV
+            del painter
+
         else:
             # Pass event to default handler
             super(ImageView, self).keyReleaseEvent(event)
