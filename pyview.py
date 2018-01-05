@@ -1,20 +1,30 @@
 #! /usr/bin/env python3
-# -*- coding: utf-8 -*-
+
+# Simple Photo Collage application
 #
+# Author: Oxben <oxben@free.fr>
+#
+# -*- coding: utf-8 -*-
+
 import math
 import os
 import sys
 from urllib.parse import *
-from PyQt4.QtCore import *
-from PyQt4.QtGui import *
-from PyQt4.QtOpenGL import *
+
+from PyQt5.QtWidgets import QApplication, QWidget, QHBoxLayout
+from PyQt5.QtWidgets import QGraphicsItem, QGraphicsPixmapItem, QGraphicsView, QGraphicsScene
+
+from PyQt5.QtGui import QPainter, QBrush, QPixmap
+
+from PyQt5.QtCore import QRect, QRectF, Qt
+
 
 RotOffset   = 5.0
 ScaleOffset = 0.05
 MaxZoom     = 2.0
 FrameRadius = 15.0
 FrameWidth  = 10.0
-CollageAspectRatio = (4.0/3.0)
+CollageAspectRatio = (2.0/3.0)
 CollageSize = QRectF(0, 0, 1024, 1024*CollageAspectRatio)
 LimitDrag   = True
 
@@ -24,9 +34,9 @@ OpenGLRender = False
 
 #-------------------------------------------------------------------------------
 class PhotoFrameItem(QGraphicsItem):
-
-    def __init__(self, rect, parent = None, scene = None):
-        super(PhotoFrameItem, self).__init__(parent, scene)
+    '''The frame around a photo'''
+    def __init__(self, rect, parent = None):
+        super(PhotoFrameItem, self).__init__(parent)
         self.rect = rect
         # Set flags
         self.setFlags(self.flags() | QGraphicsItem.ItemClipsChildrenToShape)
@@ -48,9 +58,9 @@ class PhotoFrameItem(QGraphicsItem):
 
 #-------------------------------------------------------------------------------
 class PhotoItem(QGraphicsPixmapItem):
-
-    def __init__(self, pixmap, parent = None, scene = None):
-        super(PhotoItem, self).__init__(pixmap, parent, scene)
+    '''A photo item'''
+    def __init__(self, pixmap, parent = None):
+        super(PhotoItem, self).__init__(pixmap, parent)
         self.reset()
         # Use bilinear filtering
         self.setTransformationMode(Qt.SmoothTransformation)
@@ -289,6 +299,11 @@ def create_3x3_collage():
 def create_2x2_collage():
     createGridCollage(2, 2)
 
+
+def create_3x4_collage():
+    createGridCollage(3, 4)
+
+
 #
 # Main
 #
@@ -327,11 +342,12 @@ if OpenGLRender:
 scene = CollageScene()
 
 # Load pixmap and add it to the scene
-create_3_2B_3_collage()
+#create_3_2B_3_collage()
 #create_2_2B_2_collage()
 #create_3x3_collage()
 #create_2x2_collage()
 #createGridCollage(2, 3)
+create_3x4_collage()
 
 gfxview.setScene(scene)
 
