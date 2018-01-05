@@ -6,6 +6,7 @@
 #
 # -*- coding: utf-8 -*-
 
+import getopt
 import math
 import os
 import sys
@@ -32,6 +33,12 @@ Debug = True
 OpenGLRender = False
 
 filenames = []
+
+
+#-------------------------------------------------------------------------------
+def error(msg):
+    print(("Error: %s\n") % (msg))
+
 
 #-------------------------------------------------------------------------------
 class PhotoFrameItem(QGraphicsItem):
@@ -211,6 +218,7 @@ class CollageScene(QGraphicsScene):
         super(CollageScene, self).__init__()
 
     def addPhoto(self, rect, filepath):
+        print('addPhoto(%s)' % filepath)
         frame = PhotoFrameItem(QRect(0, 0, rect.width(), rect.height()))
         frame.setPos(rect.x(), rect.y())
         photo = PhotoItem(QPixmap(filepath))
@@ -299,19 +307,40 @@ def create_2x2_collage(scene):
 def create_3x4_collage(scene):
     createGridCollage(scene, 3, 4)
 
+#-------------------------------------------------------------------------------
+def usage():
+    print('Usage: ' +  os.path.basename(sys.argv[0]) + \
+          'image1...imageN')
+    print("\nOptions:\n")
+    print("  -h         This help message")
 
-#
-# Main
-#
+
+def parse_args():
+    try:
+        opts, args = getopt.getopt(sys.argv[1:], 'h', ['help'])
+    except getopt.GetoptError as err:
+        error(str(err))
+        self.usage()
+        sys.exit(1)
+
+    for o, a in opts:
+        if o == '-h' or o == '--help':
+            usage()
+            sys.exit(0)
+
+    if len(args) == 0:
+        error('At least one file must be specified on the command line')
+        usage()
+        sys.exit(1)
+
+    for f in args:
+        filenames.append(os.path.abspath(f))
+        print(filenames)
+
 
 def main():
-    # Parse args
-    if len(sys.argv) > 1:
-        for f in sys.argv[1:]:
-            filenames.append(os.path.abspath(f))
-            print(filenames)
-    else:
-        filenames.append(os.getcwd() + "/photo.png")
+    # Parse arguments
+    parse_args()
 
     # Create an PyQt5 application object.
     app = QApplication(sys.argv)
