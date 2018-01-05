@@ -222,8 +222,9 @@ class CollageScene(QGraphicsScene):
         fr = self.addItem(frame)
 
 
-class loopiter:
-    '''Infinite iterator'''
+#-------------------------------------------------------------------------------
+class LoopIter:
+    '''Infinite iterator: loop on list elements, wrapping to first element when last element is reached'''
     def __init__(self, l):
         self.i = 0
         self.l = l
@@ -236,11 +237,8 @@ class loopiter:
         self.i = (self.i + 1)  % len(self.l)
         return item
 
-
-#-------------------------------------------------------------------------------
-
 def create_3_2B_3_collage(scene):
-    f = loopiter(filenames)
+    f = LoopIter(filenames)
     # First column
     x = 0
     photoWidth  = CollageSize.width() / 4
@@ -262,7 +260,7 @@ def create_3_2B_3_collage(scene):
 
 
 def create_2_2B_2_collage(scene):
-    f = loopiter(filenames)
+    f = LoopIter(filenames)
     # First column
     x = 0
     photoWidth  = CollageSize.width() / 4
@@ -284,7 +282,7 @@ def create_2_2B_2_collage(scene):
 
 
 def createGridCollage(scene, numx , numy):
-    f = loopiter(filenames)
+    f = LoopIter(filenames)
     photoWidth  = CollageSize.width() / numx
     photoHeight =  CollageSize.height() / numy
     for x in range(0, numx):
