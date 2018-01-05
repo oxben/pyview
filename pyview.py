@@ -14,8 +14,9 @@ from urllib.parse import *
 
 from PyQt5.QtWidgets import QApplication, QWidget, QHBoxLayout
 from PyQt5.QtWidgets import QGraphicsItem, QGraphicsPixmapItem, QGraphicsView, QGraphicsScene
+from PyQt5.QtWidgets import QFileDialog
 
-from PyQt5.QtGui import QPainter, QBrush, QPixmap
+from PyQt5.QtGui import QPainter, QBrush, QPixmap, QImage
 
 from PyQt5.QtCore import QRect, QRectF, Qt
 
@@ -114,9 +115,9 @@ class PhotoItem(QGraphicsPixmapItem):
             self.reset()
 
     def mouseDoubleClickEvent(self, event):
-        filename = QFileDialog.getOpenFileName(w, 'Open File', os.getcwd())
+        filename = QFileDialog.getOpenFileName(None, 'Open File', os.getcwd())
         print("Open file:", filename)
-        self.setPixmap(QPixmap(filename))
+        self.setPixmap(QPixmap(filename[0]))
 
     def wheelEvent(self, event):
         scale = self.scale()
