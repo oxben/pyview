@@ -31,6 +31,7 @@ LimitDrag   = True
 Debug = True
 OpenGLRender = False
 
+filenames = []
 
 #-------------------------------------------------------------------------------
 class PhotoFrameItem(QGraphicsItem):
@@ -211,6 +212,15 @@ class CollageScene(QGraphicsScene):
     def __init__(self):
         super(CollageScene, self).__init__()
 
+    def addPhoto(self, rect, filepath):
+        frame = PhotoFrameItem(QRect(0, 0, rect.width(), rect.height()))
+        frame.setPos(rect.x(), rect.y())
+        photo = PhotoItem(QPixmap(filepath))
+        photo.setParentItem(frame)
+        photo.reset()
+        # Add frame to scene
+        fr = self.addItem(frame)
+
 
 class loopiter:
     '''Infinite iterator'''
@@ -229,128 +239,121 @@ class loopiter:
 
 #-------------------------------------------------------------------------------
 
-def addPhoto(rect, filepath):
-    frame = PhotoFrameItem(QRect(0, 0, rect.width(), rect.height()))
-    frame.setPos(rect.x(), rect.y())
-    photo = PhotoItem(QPixmap(filepath))
-    photo.setParentItem(frame)
-    photo.reset()
-    # Add frame to scene
-    fr = scene.addItem(frame)
-
-
-def create_3_2B_3_collage():
+def create_3_2B_3_collage(scene):
     f = loopiter(filenames)
     # First column
     x = 0
     photoWidth  = CollageSize.width() / 4
     photoHeight =  CollageSize.height() / 3
     for y in range(0, 3):
-        addPhoto(QRect(x, y * photoHeight, photoWidth, photoHeight), f.next())
+        scene.addPhoto(QRect(x, y * photoHeight, photoWidth, photoHeight), f.next())
     # Second column
     x += photoWidth
     photoWidth  = CollageSize.width() / 2
     photoHeight =  CollageSize.height() / 2
     for y in range(0, 2):
-        addPhoto(QRect(x, y * photoHeight, photoWidth, photoHeight), f.next())
+        scene.addPhoto(QRect(x, y * photoHeight, photoWidth, photoHeight), f.next())
    # Third column
     x += photoWidth
     photoWidth  = CollageSize.width() / 4
     photoHeight =  CollageSize.height() / 3
     for y in range(0, 3):
-        addPhoto(QRect(x, y * photoHeight, photoWidth, photoHeight), f.next())
+        scene.addPhoto(QRect(x, y * photoHeight, photoWidth, photoHeight), f.next())
 
 
-def create_2_2B_2_collage():
+def create_2_2B_2_collage(scene):
     f = loopiter(filenames)
     # First column
     x = 0
     photoWidth  = CollageSize.width() / 4
     photoHeight =  CollageSize.height() / 2
     for y in range(0, 2):
-        addPhoto(QRect(x, y * photoHeight, photoWidth, photoHeight), f.next())
+        scene.addPhoto(QRect(x, y * photoHeight, photoWidth, photoHeight), f.next())
     # Second column
     x += photoWidth
     photoWidth  = CollageSize.width() / 2
     photoHeight =  CollageSize.height() / 2
     for y in range(0, 2):
-        addPhoto(QRect(x, y * photoHeight, photoWidth, photoHeight), f.next())
+        scene.addPhoto(QRect(x, y * photoHeight, photoWidth, photoHeight), f.next())
     # Third column
     x += photoWidth
     photoWidth  = CollageSize.width() / 4
     photoHeight =  CollageSize.height() / 2
     for y in range(0, 2):
-        addPhoto(QRect(x, y * photoHeight, photoWidth, photoHeight), f.next())
+        scene.addPhoto(QRect(x, y * photoHeight, photoWidth, photoHeight), f.next())
 
 
-def createGridCollage(numx , numy):
+def createGridCollage(scene, numx , numy):
     f = loopiter(filenames)
     photoWidth  = CollageSize.width() / numx
     photoHeight =  CollageSize.height() / numy
     for x in range(0, numx):
         for y in range(0, numy):
-            addPhoto(QRect(x * photoWidth, y * photoHeight, photoWidth, photoHeight), f.next())
+            scene.addPhoto(QRect(x * photoWidth, y * photoHeight, photoWidth, photoHeight), f.next())
 
 
-def create_3x3_collage():
-    createGridCollage(3, 3)
+def create_3x3_collage(scene):
+    createGridCollage(scene, 3, 3)
 
 
-def create_2x2_collage():
-    createGridCollage(2, 2)
+def create_2x2_collage(scene):
+    createGridCollage(scene, 2, 2)
 
 
-def create_3x4_collage():
-    createGridCollage(3, 4)
+def create_3x4_collage(scene):
+    createGridCollage(scene, 3, 4)
 
 
 #
 # Main
 #
 
-# Parse args
-filenames = []
-if len(sys.argv) > 1:
-    for f in sys.argv[1:]:
-        filenames.append(os.path.abspath(f))
-        print(filenames)
-else:
-    filenames.append(os.getcwd() + "/photo.png")
+def main():
+    # Parse args
+    if len(sys.argv) > 1:
+        for f in sys.argv[1:]:
+            filenames.append(os.path.abspath(f))
+            print(filenames)
+    else:
+        filenames.append(os.getcwd() + "/photo.png")
 
-# Create an PyQT4 application object.
-app = QApplication(sys.argv)
+    # Create an PyQT4 application object.
+    app = QApplication(sys.argv)
 
-# The QWidget widget is the base class of all user interface objects in PyQt4.
-w = QWidget()
+    # The QWidget widget is the base class of all user interface objects in PyQt4.
+    w = QWidget()
 
-# Set window title
-w.setWindowTitle("PyView")
-w.resize(512, 512*CollageAspectRatio)
-layout = QHBoxLayout()
-w.setLayout(layout)
+    # Set window title
+    w.setWindowTitle("PyView")
+    w.resize(512, 512*CollageAspectRatio)
+    layout = QHBoxLayout()
+    w.setLayout(layout)
 
-# Create GraphicsView
-gfxview = ImageView()
-layout.addWidget(gfxview)
-gfxview.setBackgroundBrush(QBrush(Qt.white))
+    # Create GraphicsView
+    gfxview = ImageView()
+    layout.addWidget(gfxview)
+    gfxview.setBackgroundBrush(QBrush(Qt.white))
 
-# Set OpenGL renderer
-if OpenGLRender:
-    gfxview.setViewport(QGLWidget())
+    # Set OpenGL renderer
+    if OpenGLRender:
+        gfxview.setViewport(QGLWidget())
 
-# Add scene
-scene = CollageScene()
+    # Add scene
+    scene = CollageScene()
 
-# Load pixmap and add it to the scene
-#create_3_2B_3_collage()
-#create_2_2B_2_collage()
-#create_3x3_collage()
-#create_2x2_collage()
-#createGridCollage(2, 3)
-create_3x4_collage()
+    # Load pixmap and add it to the scene
+    #create_3_2B_3_collage()
+    #create_2_2B_2_collage()
+    #create_3x3_collage()
+    #create_2x2_collage()
+    #createGridCollage(2, 3)
+    create_3x4_collage(scene)
 
-gfxview.setScene(scene)
+    gfxview.setScene(scene)
 
-# Show window
-w.show()
-sys.exit(app.exec_())
+    # Show window
+    w.show()
+    sys.exit(app.exec_())
+
+if __name__ == '__main__':
+    main()
