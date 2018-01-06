@@ -35,6 +35,7 @@ OutFileName = "out.png"
 OpenGLRender = False
 
 filenames = []
+app = None
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
@@ -361,6 +362,7 @@ def parse_args():
 
 #-------------------------------------------------------------------------------
 def main():
+    global app
     # Parse arguments
     parse_args()
 
