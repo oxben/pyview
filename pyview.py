@@ -24,6 +24,7 @@ from PyQt5.QtCore import QRect, QRectF, Qt
 
 RotOffset   = 5.0
 ScaleOffset = 0.05
+SmallScaleOffset = 0.01
 MaxZoom     = 2.0
 FrameRadius = 15.0
 FrameWidth  = 10.0
@@ -126,12 +127,18 @@ class PhotoItem(QGraphicsPixmapItem):
             logger.debug('Zoom')
             rot += RotOffset
             if scale < MaxZoom:
-                scale += ScaleOffset
+                if round(scale, 2) < round(ScaleOffset * 2, 2):
+                    scale += SmallScaleOffset
+                else:
+                    scale += ScaleOffset
         else:
             logger.debug('Unzoom')
             rot -= RotOffset
             if scale >= ScaleOffset * 2:
                 scale -= ScaleOffset
+            elif scale >= SmallScaleOffset * 2:
+                scale -= SmallScaleOffset
+        logger.debug('scale=%f' % scale)
         # Transform based on mouse position
         # XXX: doesn't work well
         #self.setTransformOriginPoint(event.pos())
