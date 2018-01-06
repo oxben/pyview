@@ -138,18 +138,20 @@ class PhotoItem(QGraphicsPixmapItem):
                 scale -= ScaleOffset
             elif scale >= SmallScaleOffset * 2:
                 scale -= SmallScaleOffset
-        logger.debug('scale=%f' % scale)
         # Transform based on mouse position
         # XXX: doesn't work well
         #self.setTransformOriginPoint(event.pos())
         modifiers = event.modifiers()
         if modifiers == Qt.NoModifier:
             self.setScale(scale)
+            logger.debug('scale=%f' % (scale))
         elif modifiers == Qt.ShiftModifier:
             self.setRotation(rot)
+            logger.debug('rotation=%f' % (rot))
         elif modifiers == (Qt.ShiftModifier|Qt.ControlModifier):
             self.setScale(scale)
             self.setRotation(rot)
+            logger.debug('scale=%f rotation=%f' % (scale, rot))
 
     def dragEnterEvent(self, event):
         mimeData = event.mimeData()
