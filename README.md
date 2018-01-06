@@ -1,3 +1,3 @@
 # pyview
-Image viewing and photo collage application in PyQt4.
-Created it to learn PyQt4 API.
+Image viewing and photo collage application in PyQt5.
+Created it to learn PyQt5 API.
