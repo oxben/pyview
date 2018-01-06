@@ -114,7 +114,8 @@ class PhotoItem(QGraphicsPixmapItem):
             self.reset()
 
     def mouseDoubleClickEvent(self, event):
-        filename, filetype = QFileDialog.getOpenFileName(None, 'Open File', os.getcwd())
+        filename, filetype = QFileDialog.getOpenFileName(None, 'Open File', os.getcwd(), \
+            "Images (*.png *.gif *.jpg);;All Files (*)")
         logger.info('Open image file: %s' % filename)
         self.setPixmap(QPixmap(filename))
 
@@ -187,7 +188,8 @@ class ImageView(QGraphicsView):
             # Save collage to output file
             if (modifiers == Qt.NoModifier and not OutFileName) or \
                modifiers == Qt.ShiftModifier:
-                OutFileName, filetype = QFileDialog.getSaveFileName(None, 'Save Collage', os.getcwd())
+                OutFileName, filetype = QFileDialog.getSaveFileName(None, 'Save Collage', os.getcwd(), \
+                    "Images (*.png *.gif *.jpg);;All Files (*)")
             elif modifiers == Qt.ControlModifier:
                 return
             logger.info("Collage saved to file: %s" % OutFileName)
