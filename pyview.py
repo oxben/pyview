@@ -50,8 +50,11 @@ class PhotoFrameItem(QGraphicsItem):
         self.rect = rect
         self.photo = None
         # Set flags
-        self.setFlags(self.flags() | QGraphicsItem.ItemClipsChildrenToShape)
+        self.setFlags(self.flags() |
+                      QGraphicsItem.ItemClipsChildrenToShape |
+                      QGraphicsItem.ItemIsFocusable)
         self.setAcceptDrops(True)
+        self.setAcceptHoverEvents(True)
 
     def setPhoto(self, photo):
         '''Set PhotoItem associated to this frame'''
@@ -72,6 +75,19 @@ class PhotoFrameItem(QGraphicsItem):
         painter.drawRoundedRect(self.rect.left(), self.rect.top(),
                                 self.rect.width(), self.rect.height(),
                                 FrameRadius, FrameRadius)
+
+    def hoverEnterEvent(self, event):
+        # Request keyboard events
+        self.setFocus()
+
+    def hoverLeaveEvent(self, event):
+        self.clearFocus()
+
+    def keyReleaseEvent(self, event):
+        logger.debug(str(event.key()))
+        if event.key() == Qt.Key_Slash:
+            # Reset photo pos, scale and rotation
+            self.photo.reset()
 
     def dragEnterEvent(self, event):
         logger.debug('dragEnterEvent')
@@ -102,9 +118,7 @@ class PhotoItem(QGraphicsPixmapItem):
         # Set flags
         self.setFlags(self.flags() |
                       QGraphicsItem.ItemIsMovable |
-                      QGraphicsItem.ItemIsFocusable |
                       QGraphicsItem.ItemStacksBehindParent)
-        self.setAcceptHoverEvents(True)
 
     def setPixmap(self, pixmap):
         logger.debug('setPixmap(): %d %d' % (pixmap.width(), pixmap.height()))
@@ -124,19 +138,6 @@ class PhotoItem(QGraphicsPixmapItem):
         # Reset transformation
         self.setScale(1.0)
         self.setRotation(0.0)
-
-    def hoverEnterEvent(self, event):
-        # Request keyboard events
-        self.setFocus()
-
-    def hoverLeaveEvent(self, event):
-        self.clearFocus()
-
-    def keyReleaseEvent(self, event):
-        logger.debug(str(event.key()))
-        if event.key() == Qt.Key_Slash:
-            # Reset pos, scale and rotation
-            self.reset()
 
     def mouseDoubleClickEvent(self, event):
         filename, filetype = QFileDialog.getOpenFileName(None, 'Open File', os.getcwd(), \
@@ -181,7 +182,7 @@ class PhotoItem(QGraphicsPixmapItem):
 
 #-------------------------------------------------------------------------------
 class ImageView(QGraphicsView):
-
+    '''GraphicsView containing the scene'''
     def __init__(self, parent=None):
         super(ImageView, self).__init__(parent)
         # Hide scrollbars
