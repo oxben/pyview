@@ -115,7 +115,7 @@ class PhotoItem(QGraphicsPixmapItem):
     def mouseDoubleClickEvent(self, event):
         filename, filetype = QFileDialog.getOpenFileName(None, 'Open File', os.getcwd())
         logger.info('Open image file: %s' % filename)
-        self.setPixmap(QPixmap(filename[0]))
+        self.setPixmap(QPixmap(filename))
 
     def wheelEvent(self, event):
         scale = self.scale()
