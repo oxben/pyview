@@ -378,7 +378,7 @@ def main():
 
     # Set window title
     w.setWindowTitle("PyView")
-    w.resize(512, 512 * CollageAspectRatio)
+    w.resize(800, 800 * CollageAspectRatio)
     layout = QHBoxLayout()
     w.setLayout(layout)
 
