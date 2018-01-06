@@ -145,14 +145,16 @@ class PhotoItem(QGraphicsPixmapItem):
             self.setRotation(rot)
 
     def dragEnterEvent(self, event):
-        if event.mimeData().hasFormat('text/plain'):
+        mimeData = event.mimeData()
+        if mimeData.hasUrls() and len(mimeData.urls()) == 1:
             event.accept()
         else:
             event.ignore()
 
     def dropEvent(self, event):
-        if event.proposedAction() == Qt.CopyAction and event.mimeData().hasText():
-            filePath = unquote(urlparse(event.mimeData().text().strip()).path)
+        mimeData = event.mimeData()
+        if event.proposedAction() == Qt.CopyAction and mimeData.hasUrls():
+            filePath = mimeData.urls()[0].toLocalFile()
             logger.debug("File dragged'n'dropped: %s" % filePath)
             pixmap = QPixmap(filePath)
             if pixmap.width() > 0:
