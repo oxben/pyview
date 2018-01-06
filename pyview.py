@@ -48,8 +48,16 @@ class PhotoFrameItem(QGraphicsItem):
     def __init__(self, rect, parent = None):
         super(PhotoFrameItem, self).__init__(parent)
         self.rect = rect
+        self.photo = None
         # Set flags
         self.setFlags(self.flags() | QGraphicsItem.ItemClipsChildrenToShape)
+        self.setAcceptDrops(True)
+
+    def setPhoto(self, photo):
+        '''Set PhotoItem associated to this frame'''
+        self.photo = photo
+        self.photo.setParentItem(self)
+        self.photo.reset()
 
     def boundingRect(self):
         return QRectF(self.rect)
@@ -65,6 +73,23 @@ class PhotoFrameItem(QGraphicsItem):
                                 self.rect.width(), self.rect.height(),
                                 FrameRadius, FrameRadius)
 
+    def dragEnterEvent(self, event):
+        logger.debug('dragEnterEvent')
+        mimeData = event.mimeData()
+        if mimeData.hasUrls() and len(mimeData.urls()) == 1:
+            event.accept()
+        else:
+            event.ignore()
+
+    def dropEvent(self, event):
+        logger.debug('dropEvent')
+        mimeData = event.mimeData()
+        if event.proposedAction() == Qt.CopyAction and mimeData.hasUrls():
+            filePath = mimeData.urls()[0].toLocalFile()
+            logger.debug("File dragged'n'dropped: %s" % filePath)
+            pixmap = QPixmap(filePath)
+            if pixmap.width() > 0:
+                self.photo.setPixmap(pixmap)
 
 #-------------------------------------------------------------------------------
 class PhotoItem(QGraphicsPixmapItem):
@@ -80,7 +105,6 @@ class PhotoItem(QGraphicsPixmapItem):
                       QGraphicsItem.ItemIsFocusable |
                       QGraphicsItem.ItemStacksBehindParent)
         self.setAcceptHoverEvents(True)
-        self.setAcceptDrops(True)
 
     def setPixmap(self, pixmap):
         logger.debug('setPixmap(): %d %d' % (pixmap.width(), pixmap.height()))
@@ -153,21 +177,6 @@ class PhotoItem(QGraphicsPixmapItem):
             self.setRotation(rot)
             logger.debug('scale=%f rotation=%f' % (scale, rot))
 
-    def dragEnterEvent(self, event):
-        mimeData = event.mimeData()
-        if mimeData.hasUrls() and len(mimeData.urls()) == 1:
-            event.accept()
-        else:
-            event.ignore()
-
-    def dropEvent(self, event):
-        mimeData = event.mimeData()
-        if event.proposedAction() == Qt.CopyAction and mimeData.hasUrls():
-            filePath = mimeData.urls()[0].toLocalFile()
-            logger.debug("File dragged'n'dropped: %s" % filePath)
-            pixmap = QPixmap(filePath)
-            if pixmap.width() > 0:
-                self.setPixmap(pixmap)
 
 
 #-------------------------------------------------------------------------------
@@ -238,6 +247,7 @@ class ImageView(QGraphicsView):
 
 #-------------------------------------------------------------------------------
 class CollageScene(QGraphicsScene):
+    '''Scene containing the frames and the photos'''
     def __init__(self):
         super(CollageScene, self).__init__()
 
@@ -246,8 +256,7 @@ class CollageScene(QGraphicsScene):
         frame = PhotoFrameItem(QRect(0, 0, rect.width(), rect.height()))
         frame.setPos(rect.x(), rect.y())
         photo = PhotoItem(QPixmap(filepath))
-        photo.setParentItem(frame)
-        photo.reset()
+        frame.setPhoto(photo)
         # Add frame to scene
         fr = self.addItem(frame)
 
