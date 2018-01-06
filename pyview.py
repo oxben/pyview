@@ -89,6 +89,12 @@ class PhotoFrameItem(QGraphicsItem):
             # Reset photo pos, scale and rotation
             self.photo.reset()
 
+    def mouseDoubleClickEvent(self, event):
+        filename, filetype = QFileDialog.getOpenFileName(None, 'Open File', os.getcwd(), \
+            "Images (*.png *.gif *.jpg);;All Files (*)")
+        logger.info('Open image file: %s' % filename)
+        self.photo.setPixmap(QPixmap(filename))
+
     def dragEnterEvent(self, event):
         logger.debug('dragEnterEvent')
         mimeData = event.mimeData()
@@ -106,6 +112,7 @@ class PhotoFrameItem(QGraphicsItem):
             pixmap = QPixmap(filePath)
             if pixmap.width() > 0:
                 self.photo.setPixmap(pixmap)
+
 
 #-------------------------------------------------------------------------------
 class PhotoItem(QGraphicsPixmapItem):
@@ -140,10 +147,9 @@ class PhotoItem(QGraphicsPixmapItem):
         self.setRotation(0.0)
 
     def mouseDoubleClickEvent(self, event):
-        filename, filetype = QFileDialog.getOpenFileName(None, 'Open File', os.getcwd(), \
-            "Images (*.png *.gif *.jpg);;All Files (*)")
-        logger.info('Open image file: %s' % filename)
-        self.setPixmap(QPixmap(filename))
+        if self.parentItem():
+            # Forward event to parent frame
+            self.parentItem().mouseDoubleClickEvent(event)
 
     def wheelEvent(self, event):
         scale = self.scale()
@@ -177,7 +183,6 @@ class PhotoItem(QGraphicsPixmapItem):
             self.setScale(scale)
             self.setRotation(rot)
             logger.debug('scale=%f rotation=%f' % (scale, rot))
-
 
 
 #-------------------------------------------------------------------------------
