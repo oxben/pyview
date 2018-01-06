@@ -15,7 +15,7 @@ from urllib.parse import *
 
 from PyQt5.QtWidgets import QApplication, QWidget, QHBoxLayout
 from PyQt5.QtWidgets import QGraphicsItem, QGraphicsPixmapItem, QGraphicsView, QGraphicsScene
-from PyQt5.QtWidgets import QFileDialog
+from PyQt5.QtWidgets import QFileDialog, QOpenGLWidget
 
 from PyQt5.QtGui import QPainter, QBrush, QPixmap, QImage
 
@@ -389,7 +389,7 @@ def main():
 
     # Set OpenGL renderer
     if OpenGLRender:
-        gfxview.setViewport(QGLWidget())
+        gfxview.setViewport(QOpenGLWidget())
 
     # Add scene
     scene = CollageScene()
