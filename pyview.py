@@ -57,11 +57,13 @@ class PhotoFrameItem(QGraphicsItem):
         self.setAcceptDrops(True)
         self.setAcceptHoverEvents(True)
 
-    def setPhoto(self, photo):
+    def setPhoto(self, photo, reset=True):
         '''Set PhotoItem associated to this frame'''
         self.photo = photo
         self.photo.setParentItem(self)
-        self.photo.reset()
+        if reset:
+            self.photo.reset()
+        self.update()
 
     def boundingRect(self):
         return QRectF(self.rect)
@@ -99,7 +101,7 @@ class PhotoFrameItem(QGraphicsItem):
     def dragEnterEvent(self, event):
         logger.debug('dragEnterEvent')
         mimeData = event.mimeData()
-        if mimeData.hasUrls() and len(mimeData.urls()) == 1:
+        if (mimeData.hasUrls() and len(mimeData.urls()) == 1) or mimeData.hasText():
             event.accept()
         else:
             event.ignore()
@@ -109,22 +111,25 @@ class PhotoFrameItem(QGraphicsItem):
         logger.debug('dropEvent: mimeData=%s' % str(mimeData.urls()))
         logger.debug('dropEvent: dict=%s pos=%s' % (dir(event), str(event.scenePos())))
         if event.proposedAction() == Qt.CopyAction and mimeData.hasUrls():
+            # New photo
             filePath = mimeData.urls()[0].toLocalFile()
             logger.debug("File dragged'n'dropped: %s" % filePath)
-            if mimeData.hasText():
-                # This could be a "swap photo" action
-                # Get source PhotoItem and swap its photo
-                logger.debug('mimeData.text=%s' % mimeData.text())
-                try:
-                    sourcePos = json.loads(mimeData.text())
-                    items = self.scene().items(QPointF(sourcePos['pos']['x'], sourcePos['pos']['y']))
-                    if items:
-                        for item in items:
-                            if isinstance(item, PhotoItem):
-                                item.setPhoto(self.photo.filename)
-                except Exception:
-                    logger.debug('dropEvent: not a "photo swap" event: %s' % mimeData.text())
             self.photo.setPhoto(filePath)
+        elif event.proposedAction() == Qt.MoveAction and mimeData.hasText():
+            # Swap photos
+            # Get source PhotoFrameItem and swap its photo
+            logger.debug('mimeData.text=%s' % mimeData.text())
+            try:
+                sourcePos = json.loads(mimeData.text())
+                items = self.scene().items(QPointF(sourcePos['pos']['x'], sourcePos['pos']['y']))
+                if items:
+                    for srcItem in items:
+                        if isinstance(srcItem, PhotoFrameItem):
+                            photoItem = srcItem.photo
+                            srcItem.setPhoto(self.photo, reset=False)
+                            self.setPhoto(photoItem, reset=False)
+            except Exception:
+                logger.debug('dropEvent: not a "photo swap" event: %s' % mimeData.text())
 
 
 #-------------------------------------------------------------------------------
@@ -208,7 +213,6 @@ class PhotoItem(QGraphicsPixmapItem):
 
     def mousePressEvent(self, event):
         if event.button() == Qt.RightButton:
-            logger.debug('Initiate drag')
             self.dragStartPosition = event.pos()
         else:
             super(PhotoItem, self).mousePressEvent(event)
@@ -218,12 +222,13 @@ class PhotoItem(QGraphicsPixmapItem):
             if (event.pos() - self.dragStartPosition).manhattanLength() < QApplication.startDragDistance():
                 return;
             else:
+                # Initiate "swap photos" action
+                # Pass source PhotoFrameItem coordinates in json format
                 drag = QDrag(event.widget())
                 mimeData = QMimeData()
-                mimeData.setUrls([QUrl.fromLocalFile(self.filename)])
                 mimeData.setText('{ "pos": { "x" : %f, "y" : %f }}' % (event.scenePos().x(), event.scenePos().y()))
                 drag.setMimeData(mimeData)
-                dropAction = drag.exec_(Qt.CopyAction) # | Qt.MoveAction)
+                dropAction = drag.exec_(Qt.MoveAction)
                 logger.debug('dropAction=%s' % str(dropAction))
         else:
             super(PhotoItem, self).mouseMoveEvent(event)
@@ -399,6 +404,7 @@ def usage():
     print("  -h         This help message")
     print("\nCommands:\n")
     print("  Left Button    Drag image")
+    print("  Right Button   Drag to swap two images")
     print("  Wheel          Zoom image")
     print("  Shift + Wheel  Rotate image")
     print("  Double Click   Load new image")
