@@ -7,6 +7,7 @@
 # -*- coding: utf-8 -*-
 
 import getopt
+import json
 import logging
 import math
 import os
@@ -17,9 +18,9 @@ from PyQt5.QtWidgets import QApplication, QWidget, QHBoxLayout
 from PyQt5.QtWidgets import QGraphicsItem, QGraphicsPixmapItem, QGraphicsView, QGraphicsScene
 from PyQt5.QtWidgets import QFileDialog, QOpenGLWidget
 
-from PyQt5.QtGui import QPainter, QBrush, QPixmap, QImage
+from PyQt5.QtGui import QPainter, QBrush, QPixmap, QImage, QIcon, QDrag
 
-from PyQt5.QtCore import QRect, QRectF, Qt
+from PyQt5.QtCore import QRect, QRectF, QPointF, QSize, Qt, QMimeData, QUrl
 
 
 RotOffset   = 5.0
@@ -93,7 +94,7 @@ class PhotoFrameItem(QGraphicsItem):
         filename, filetype = QFileDialog.getOpenFileName(None, 'Open File', os.getcwd(), \
             "Images (*.png *.gif *.jpg);;All Files (*)")
         logger.info('Open image file: %s' % filename)
-        self.photo.setPixmap(QPixmap(filename))
+        self.photo.setPhoto(filename)
 
     def dragEnterEvent(self, event):
         logger.debug('dragEnterEvent')
@@ -104,21 +105,35 @@ class PhotoFrameItem(QGraphicsItem):
             event.ignore()
 
     def dropEvent(self, event):
-        logger.debug('dropEvent')
         mimeData = event.mimeData()
+        logger.debug('dropEvent: mimeData=%s' % str(mimeData.urls()))
+        logger.debug('dropEvent: dict=%s pos=%s' % (dir(event), str(event.scenePos())))
         if event.proposedAction() == Qt.CopyAction and mimeData.hasUrls():
             filePath = mimeData.urls()[0].toLocalFile()
             logger.debug("File dragged'n'dropped: %s" % filePath)
-            pixmap = QPixmap(filePath)
-            if pixmap.width() > 0:
-                self.photo.setPixmap(pixmap)
+            if mimeData.hasText():
+                # This could be a "swap photo" action
+                # Get source PhotoItem and swap its photo
+                logger.debug('mimeData.text=%s' % mimeData.text())
+                try:
+                    sourcePos = json.loads(mimeData.text())
+                    items = self.scene().items(QPointF(sourcePos['pos']['x'], sourcePos['pos']['y']))
+                    if items:
+                        for item in items:
+                            if isinstance(item, PhotoItem):
+                                item.setPhoto(self.photo.filename)
+                except Exception:
+                    logger.debug('dropEvent: not a "photo swap" event: %s' % mimeData.text())
+            self.photo.setPhoto(filePath)
 
 
 #-------------------------------------------------------------------------------
 class PhotoItem(QGraphicsPixmapItem):
     '''A photo item'''
-    def __init__(self, pixmap, parent = None):
-        super(PhotoItem, self).__init__(pixmap, parent)
+    def __init__(self, filename):
+        self.filename = filename
+        super(PhotoItem, self).__init__(QPixmap(self.filename), parent=None)
+        self.dragStartPosition = None
         self.reset()
         # Use bilinear filtering
         self.setTransformationMode(Qt.SmoothTransformation)
@@ -127,8 +142,15 @@ class PhotoItem(QGraphicsPixmapItem):
                       QGraphicsItem.ItemIsMovable |
                       QGraphicsItem.ItemStacksBehindParent)
 
+    def setPhoto(self, filename):
+        pixmap = QPixmap(filename)
+        if pixmap.width() > 0:
+            logger.debug('SetPhoto(): %d %d' % (pixmap.width(), pixmap.height()))
+            self.filename = filename
+            super(PhotoItem, self).setPixmap(pixmap)
+            self.reset()
+
     def setPixmap(self, pixmap):
-        logger.debug('setPixmap(): %d %d' % (pixmap.width(), pixmap.height()))
         super(PhotoItem, self).setPixmap(pixmap)
         self.reset()
 
@@ -183,6 +205,28 @@ class PhotoItem(QGraphicsPixmapItem):
             self.setScale(scale)
             self.setRotation(rot)
             logger.debug('scale=%f rotation=%f' % (scale, rot))
+
+    def mousePressEvent(self, event):
+        if event.button() == Qt.RightButton:
+            logger.debug('Initiate drag')
+            self.dragStartPosition = event.pos()
+        else:
+            super(PhotoItem, self).mousePressEvent(event)
+
+    def mouseMoveEvent(self, event):
+        if event.buttons() & Qt.RightButton:
+            if (event.pos() - self.dragStartPosition).manhattanLength() < QApplication.startDragDistance():
+                return;
+            else:
+                drag = QDrag(event.widget())
+                mimeData = QMimeData()
+                mimeData.setUrls([QUrl.fromLocalFile(self.filename)])
+                mimeData.setText('{ "pos": { "x" : %f, "y" : %f }}' % (event.scenePos().x(), event.scenePos().y()))
+                drag.setMimeData(mimeData)
+                dropAction = drag.exec_(Qt.CopyAction) # | Qt.MoveAction)
+                logger.debug('dropAction=%s' % str(dropAction))
+        else:
+            super(PhotoItem, self).mouseMoveEvent(event)
 
 
 #-------------------------------------------------------------------------------
@@ -261,7 +305,7 @@ class CollageScene(QGraphicsScene):
         logger.info('Add image: %s' % filepath)
         frame = PhotoFrameItem(QRect(0, 0, rect.width(), rect.height()))
         frame.setPos(rect.x(), rect.y())
-        photo = PhotoItem(QPixmap(filepath))
+        photo = PhotoItem(filepath)
         frame.setPhoto(photo)
         # Add frame to scene
         fr = self.addItem(frame)
