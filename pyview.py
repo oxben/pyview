@@ -40,6 +40,18 @@ OpenGLRender = False
 filenames = []
 app = None
 
+HelpCommands = [
+    ('Left Button',   'Drag image'),
+    ('Right Button',  'Drag to swap two images'),
+    ('Wheel',         'Zoom image'),
+    ('Shift + Wheel', 'Rotate image'),
+    ('Double Click',  'Load new image'),
+    ('+/-',           'Increase/Decrease photo frame'),
+    ('Shift + S',     'Save as collage'),
+    ('S',             'Save collage'),
+    ('Numpad /',      'Reset photo position, scale and rotation'),
+]
+
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
@@ -267,7 +279,7 @@ class ImageView(QGraphicsView):
             if self.helpItem:
                 self.helpItem.setVisible(not self.helpItem.isVisible())
             else:
-                self.helpItem = HelpItem(QRect(50, 50, 600, 600))
+                self.helpItem = HelpItem(QRect(50, 50, 700, 500))
                 self.scene().addItem(self.helpItem)
 
         elif key == Qt.Key_S:
@@ -325,7 +337,8 @@ class HelpItem(QGraphicsItem):
         painter.setRenderHint(QPainter.Antialiasing)
 
         pen = painter.pen()
-        pen.setColor(QColor(0, 0, 0, 0))
+        pen.setColor(QColor(128, 128, 128, 200))
+        pen.setWidth(3)
         painter.setPen(pen)
         brush = painter.brush()
         brush.setColor(QColor(0, 0, 0, 200))
@@ -347,10 +360,11 @@ class HelpItem(QGraphicsItem):
 
         font.setPixelSize(24)
         painter.setFont(font)
-        usageOptions = ['H: This help message', 'S: Save image']
-        for option in usageOptions:
-            point += QPoint(0, 30)
-            painter.drawText(point, option)
+        point += QPoint(0, 16)
+        for cmd, desc in HelpCommands:
+            point += QPoint(0, 32)
+            painter.drawText(point, cmd)
+            painter.drawText(point + QPoint(200, 0), desc)
 
 
 #-------------------------------------------------------------------------------
@@ -460,16 +474,8 @@ def usage():
     print("\nOptions:\n")
     print("  -h         This help message")
     print("\nCommands:\n")
-    print("  Left Button    Drag image")
-    print("  Right Button   Drag to swap two images")
-    print("  Wheel          Zoom image")
-    print("  Shift + Wheel  Rotate image")
-    print("  Double Click   Load new image")
-    print("  +/-            Increase/Decrease photo frame")
-    print("  Shift + S      Save as collage")
-    print("  S              Save collage")
-    print("  Numpad /       Reset photo position, scale and rotation")
-
+    for cmd, desc in HelpCommands:
+        print('  %-16s  %s' % (cmd, desc))
 
 #-------------------------------------------------------------------------------
 def parse_args():
