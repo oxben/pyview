@@ -18,7 +18,7 @@ from PyQt5.QtWidgets import QApplication, QWidget, QHBoxLayout
 from PyQt5.QtWidgets import QGraphicsItem, QGraphicsPixmapItem, QGraphicsView, QGraphicsScene
 from PyQt5.QtWidgets import QFileDialog, QOpenGLWidget
 
-from PyQt5.QtGui import QPainter, QBrush, QPixmap, QImage, QIcon, QDrag
+from PyQt5.QtGui import QPainter, QPen, QBrush, QPixmap, QImage, QIcon, QDrag, QColor
 
 from PyQt5.QtCore import QRect, QRectF, QPointF, QSize, Qt, QMimeData, QUrl
 
@@ -33,6 +33,7 @@ CollageAspectRatio = (2.0 / 3.0)
 CollageSize = QRectF(0, 0, 1024, 1024 * CollageAspectRatio)
 LimitDrag   = True
 OutFileName = "out.png"
+FrameBgColor = QColor(232, 232, 232)
 
 OpenGLRender = False
 
@@ -307,6 +308,10 @@ class CollageScene(QGraphicsScene):
     '''Scene containing the frames and the photos'''
     def __init__(self):
         super(CollageScene, self).__init__()
+        # Add rect to provide background for PhotoFrameItem
+        pen = QPen(FrameBgColor)
+        brush = QBrush(FrameBgColor)
+        self.addRect(QRectF(1 , 1, CollageSize.width() - 2, CollageSize.height() - 2), pen, brush)
 
     def addPhoto(self, rect, filepath):
         logger.info('Add image: %s' % filepath)
