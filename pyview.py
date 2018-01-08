@@ -239,6 +239,7 @@ class ImageView(QGraphicsView):
     '''GraphicsView containing the scene'''
     def __init__(self, parent=None):
         super(ImageView, self).__init__(parent)
+        self.setRenderHints(QPainter.Antialiasing | QPainter.SmoothPixmapTransform)
         # Hide scrollbars
         self.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
@@ -273,6 +274,7 @@ class ImageView(QGraphicsView):
             image = QImage(CollageSize.width(), CollageSize.height(), QImage.Format_RGB32)
             image.fill(Qt.black)
             painter = QPainter(image)
+            painter.setRenderHints(QPainter.Antialiasing | QPainter.SmoothPixmapTransform)
             self.render(painter)
             image.save(OutFileName)
             # Explicitely delete painter to avoid the following error:
