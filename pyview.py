@@ -20,7 +20,7 @@ from PyQt5.QtWidgets import QFileDialog, QOpenGLWidget
 
 from PyQt5.QtGui import QPainter, QPen, QBrush, QPixmap, QImage, QIcon, QDrag, QColor
 
-from PyQt5.QtCore import QRect, QRectF, QPointF, QSize, Qt, QMimeData, QUrl
+from PyQt5.QtCore import QRect, QRectF, QPoint, QPointF, QSize, Qt, QMimeData, QUrl
 
 
 RotOffset   = 5.0
@@ -244,6 +244,7 @@ class ImageView(QGraphicsView):
         # Hide scrollbars
         self.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        self.helpItem = None
 
     def keyReleaseEvent(self, event):
         global FrameRadius
@@ -260,6 +261,14 @@ class ImageView(QGraphicsView):
             # Decrease frame width
             FrameRadius = max(0, FrameRadius - 1.0)
             self.viewport().update()
+
+        elif key == Qt.Key_H:
+            # Show help
+            if self.helpItem:
+                self.helpItem.setVisible(not self.helpItem.isVisible())
+            else:
+                self.helpItem = HelpItem(QRect(50, 50, 600, 600))
+                self.scene().addItem(self.helpItem)
 
         elif key == Qt.Key_S:
             # Save collage to output file
@@ -301,6 +310,47 @@ class ImageView(QGraphicsView):
             for item in items:
                 if isinstance(item, PhotoItem):
                     super(ImageView, self).wheelEvent(event)
+
+#-------------------------------------------------------------------------------
+class HelpItem(QGraphicsItem):
+    '''Online help'''
+    def __init__(self, rect, parent = None):
+        super(HelpItem, self).__init__(parent)
+        self.rect = rect
+
+    def boundingRect(self):
+        return QRectF(self.rect)
+
+    def paint(self, painter, option, widget = None):
+        painter.setRenderHint(QPainter.Antialiasing)
+
+        pen = painter.pen()
+        pen.setColor(QColor(0, 0, 0, 0))
+        painter.setPen(pen)
+        brush = painter.brush()
+        brush.setColor(QColor(0, 0, 0, 200))
+        brush.setStyle(Qt.SolidPattern)
+        painter.setBrush(brush)
+
+        painter.drawRoundedRect(self.rect.left(), self.rect.top(),
+                                self.rect.width(), self.rect.height(),
+                                15, 15)
+
+        font = painter.font()
+        font.setPixelSize(32)
+        painter.setFont(font)
+        pen = painter.pen()
+        pen.setColor(QColor(255, 255, 255, 232))
+        painter.setPen(pen)
+        point = self.rect.topLeft() + QPoint(20, 40)
+        painter.drawText(point, 'Help')
+
+        font.setPixelSize(24)
+        painter.setFont(font)
+        usageOptions = ['H: This help message', 'S: Save image']
+        for option in usageOptions:
+            point += QPoint(0, 30)
+            painter.drawText(point, option)
 
 
 #-------------------------------------------------------------------------------
