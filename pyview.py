@@ -76,7 +76,16 @@ class PhotoFrameItem(QGraphicsItem):
         self.photo.setParentItem(self)
         if reset:
             self.photo.reset()
+            self.fitPhoto()
         self.update()
+
+    def fitPhoto(self):
+        '''Fit photo to frame'''
+        photoWidth = self.photo.pixmap().width()
+        height = self.photo.pixmap().height()
+        frameWidth = self.rect.width()
+        if photoWidth > frameWidth:
+            self.photo.setScale(self.photo.scale() * (frameWidth / photoWidth))
 
     def boundingRect(self):
         return QRectF(self.rect)
