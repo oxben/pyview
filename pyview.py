@@ -137,8 +137,10 @@ class PhotoFrameItem(QGraphicsItem):
         if event.key() == Qt.Key_F:
             # Fit photo into frame
             if modifiers == Qt.NoModifier:
+                self.photo.reset()
                 self.fitPhoto()
             elif modifiers == Qt.ShiftModifier:
+                self.photo.reset()
                 self.fitPhoto(False)
 
     def mouseDoubleClickEvent(self, event):
