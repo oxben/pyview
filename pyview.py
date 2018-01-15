@@ -439,73 +439,100 @@ class LoopIter:
         self.i = (self.i + 1)  % len(self.l)
         return item
 
-def create_3_2B_3_collage(scene):
-    f = LoopIter(filenames)
-    # First column
-    x = 0
-    photoWidth  = CollageSize.width() / 4
-    photoHeight =  CollageSize.height() / 3
-    for y in range(0, 3):
-        scene.addPhoto(QRect(x, y * photoHeight, photoWidth, photoHeight), f.next())
-    # Second column
-    x += photoWidth
-    photoWidth  = CollageSize.width() / 2
-    photoHeight =  CollageSize.height() / 2
-    for y in range(0, 2):
-        scene.addPhoto(QRect(x, y * photoHeight, photoWidth, photoHeight), f.next())
-   # Third column
-    x += photoWidth
-    photoWidth  = CollageSize.width() / 4
-    photoHeight =  CollageSize.height() / 3
-    for y in range(0, 3):
-        scene.addPhoto(QRect(x, y * photoHeight, photoWidth, photoHeight), f.next())
 
+#-------------------------------------------------------------------------------
+class PyView():
+    '''PyView class'''
+    def __init__(self):
+        '''Constructor. Parse args and build UI.'''
+        self.initUI()
+        self.win.show()
 
-def create_2_2B_2_collage(scene):
-    f = LoopIter(filenames)
-    # First column
-    x = 0
-    photoWidth  = CollageSize.width() / 4
-    photoHeight =  CollageSize.height() / 2
-    for y in range(0, 2):
-        scene.addPhoto(QRect(x, y * photoHeight, photoWidth, photoHeight), f.next())
-    # Second column
-    x += photoWidth
-    photoWidth  = CollageSize.width() / 2
-    photoHeight =  CollageSize.height() / 2
-    for y in range(0, 2):
-        scene.addPhoto(QRect(x, y * photoHeight, photoWidth, photoHeight), f.next())
-    # Third column
-    x += photoWidth
-    photoWidth  = CollageSize.width() / 4
-    photoHeight =  CollageSize.height() / 2
-    for y in range(0, 2):
-        scene.addPhoto(QRect(x, y * photoHeight, photoWidth, photoHeight), f.next())
+    def initUI(self):
+        '''Init UI of the PyView application'''
+        # The QWidget widget is the base class of all user interface objects in PyQt5.
+        self.win = QWidget()
 
+        # Set window title
+        self.win.setWindowTitle("PyView")
+        self.win.resize(800, 800 * CollageAspectRatio)
+        layout = QHBoxLayout()
+        self.win.setLayout(layout)
 
-def createGridCollage(scene, numx , numy):
-    f = LoopIter(filenames)
-    photoWidth  = CollageSize.width() / numx
-    photoHeight =  CollageSize.height() / numy
-    for x in range(0, numx):
-        for y in range(0, numy):
-            scene.addPhoto(QRect(x * photoWidth, y * photoHeight, photoWidth, photoHeight), f.next())
+        # Create GraphicsView
+        gfxview = ImageView()
+        layout.addWidget(gfxview)
+        gfxview.setBackgroundBrush(QBrush(Qt.white))
 
+        # Set OpenGL renderer
+        if OpenGLRender:
+            gfxview.setViewport(QOpenGLWidget())
 
-def create_3x3_collage(scene):
-    createGridCollage(scene, 3, 3)
+        # Add scene
+        scene = CollageScene()
 
+        # Load pixmap and add it to the scene
+        #self.create_3_2B_3_collage(scene)
+        self.create_2_2B_2_collage(scene)
+        #self.createGridCollage(scene, 3, 4)
 
-def create_2x2_collage(scene):
-    createGridCollage(scene, 2, 2)
+        gfxview.setScene(scene)
 
+    def createGridCollage(self, scene, numx , numy):
+        '''Create a collage with specified number of rows and columns'''
+        f = LoopIter(filenames)
+        photoWidth  = CollageSize.width() / numx
+        photoHeight =  CollageSize.height() / numy
+        for x in range(0, numx):
+            for y in range(0, numy):
+                scene.addPhoto(QRect(x * photoWidth, y * photoHeight, photoWidth, photoHeight), f.next())
 
-def create_3x4_collage(scene):
-    createGridCollage(scene, 3, 4)
+    def create_3_2B_3_collage(self, scene):
+        f = LoopIter(filenames)
+        # First column
+        x = 0
+        photoWidth  = CollageSize.width() / 4
+        photoHeight =  CollageSize.height() / 3
+        for y in range(0, 3):
+            scene.addPhoto(QRect(x, y * photoHeight, photoWidth, photoHeight), f.next())
+        # Second column
+        x += photoWidth
+        photoWidth  = CollageSize.width() / 2
+        photoHeight =  CollageSize.height() / 2
+        for y in range(0, 2):
+            scene.addPhoto(QRect(x, y * photoHeight, photoWidth, photoHeight), f.next())
+       # Third column
+        x += photoWidth
+        photoWidth  = CollageSize.width() / 4
+        photoHeight =  CollageSize.height() / 3
+        for y in range(0, 3):
+            scene.addPhoto(QRect(x, y * photoHeight, photoWidth, photoHeight), f.next())
+
+    def create_2_2B_2_collage(self, scene):
+        f = LoopIter(filenames)
+        # First column
+        x = 0
+        photoWidth  = CollageSize.width() / 4
+        photoHeight =  CollageSize.height() / 2
+        for y in range(0, 2):
+            scene.addPhoto(QRect(x, y * photoHeight, photoWidth, photoHeight), f.next())
+        # Second column
+        x += photoWidth
+        photoWidth  = CollageSize.width() / 2
+        photoHeight =  CollageSize.height() / 2
+        for y in range(0, 2):
+            scene.addPhoto(QRect(x, y * photoHeight, photoWidth, photoHeight), f.next())
+        # Third column
+        x += photoWidth
+        photoWidth  = CollageSize.width() / 4
+        photoHeight =  CollageSize.height() / 2
+        for y in range(0, 2):
+            scene.addPhoto(QRect(x, y * photoHeight, photoWidth, photoHeight), f.next())
 
 
 #-------------------------------------------------------------------------------
 def usage():
+    '''Display usage of the application'''
     print('Usage: ' +  os.path.basename(sys.argv[0]) + \
           'image1...imageN')
     print("\nOptions:\n")
@@ -514,13 +541,15 @@ def usage():
     for cmd, desc in HelpCommands:
         print('  %-16s  %s' % (cmd, desc))
 
+
 #-------------------------------------------------------------------------------
 def parse_args():
+    '''Parse application arguments. Build list of filenames.'''
     try:
         opts, args = getopt.getopt(sys.argv[1:], 'h', ['help'])
     except getopt.GetoptError as err:
         logger.error(str(err))
-        self.usage()
+        usage()
         sys.exit(1)
 
     for o, a in opts:
@@ -547,39 +576,9 @@ def main():
     # Create an PyQt5 application object.
     app = QApplication(sys.argv)
 
-    # The QWidget widget is the base class of all user interface objects in PyQt5.
-    w = QWidget()
+    # Create PyView instance
+    pyview = PyView()
 
-    # Set window title
-    w.setWindowTitle("PyView")
-    w.resize(800, 800 * CollageAspectRatio)
-    layout = QHBoxLayout()
-    w.setLayout(layout)
-
-    # Create GraphicsView
-    gfxview = ImageView()
-    layout.addWidget(gfxview)
-    gfxview.setBackgroundBrush(QBrush(Qt.white))
-
-    # Set OpenGL renderer
-    if OpenGLRender:
-        gfxview.setViewport(QOpenGLWidget())
-
-    # Add scene
-    scene = CollageScene()
-
-    # Load pixmap and add it to the scene
-    #create_3_2B_3_collage()
-    #create_2_2B_2_collage()
-    #create_3x3_collage()
-    #create_2x2_collage()
-    #createGridCollage(2, 3)
-    create_3x4_collage(scene)
-
-    gfxview.setScene(scene)
-
-    # Show window
-    w.show()
     sys.exit(app.exec_())
 
 if __name__ == '__main__':
