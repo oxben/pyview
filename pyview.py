@@ -39,6 +39,7 @@ OpenGLRender = False
 
 filenames = []
 app = None
+pyview = None
 
 HelpCommands = [
     ('Left Button',   'Drag image'),
@@ -321,6 +322,10 @@ class ImageView(QGraphicsView):
                 self.helpItem = HelpItem(QRect(50, 50, 700, 500))
                 self.scene().addItem(self.helpItem)
 
+        elif key == Qt.Key_L:
+            # Change layout
+            pyview.setLayout()
+
         elif key == Qt.Key_S:
             # Save collage to output file
             if (modifiers == Qt.NoModifier and not OutFileName) or \
@@ -411,10 +416,7 @@ class CollageScene(QGraphicsScene):
     '''Scene containing the frames and the photos'''
     def __init__(self):
         super(CollageScene, self).__init__()
-        # Add rect to provide background for PhotoFrameItem
-        pen = QPen(FrameBgColor)
-        brush = QBrush(FrameBgColor)
-        self.addRect(QRectF(1 , 1, CollageSize.width() - 2, CollageSize.height() - 2), pen, brush)
+        self.__initBackground()
 
     def addPhoto(self, rect, filepath):
         logger.info('Add image: %s' % filepath)
@@ -424,6 +426,16 @@ class CollageScene(QGraphicsScene):
         frame.setPhoto(photo)
         # Add frame to scene
         fr = self.addItem(frame)
+
+    def clear(self):
+        super(CollageScene, self).clear()
+        self.__initBackground()
+
+    def __initBackground(self):
+        '''Add rect to provide background for PhotoFrameItem's'''
+        pen = QPen(FrameBgColor)
+        brush = QBrush(FrameBgColor)
+        self.addRect(QRectF(1 , 1, CollageSize.width() - 2, CollageSize.height() - 2), pen, brush)
 
 
 #-------------------------------------------------------------------------------
@@ -447,6 +459,8 @@ class PyView():
     '''PyView class'''
     def __init__(self):
         '''Constructor. Parse args and build UI.'''
+        self.win = None
+        self.scene = None
         self.initUI()
         self.win.show()
 
@@ -471,14 +485,20 @@ class PyView():
             gfxview.setViewport(QOpenGLWidget())
 
         # Add scene
-        scene = CollageScene()
+        self.scene = CollageScene()
 
         # Load pixmap and add it to the scene
-        #self.create_3_2B_3_collage(scene)
-        self.create_2_2B_2_collage(scene)
-        #self.createGridCollage(scene, 3, 4)
+        #self.create_3_2B_3_collage(self.scene)
+        self.create_2_2B_2_collage(self.scene)
+        #self.createGridCollage(self.scene, 3, 4)
 
-        gfxview.setScene(scene)
+        gfxview.setScene(self.scene)
+
+    def setLayout(self):
+        # Clear all items from scene
+        self.scene.clear()
+        # Create new collage
+        self.create_3_2B_3_collage(self.scene)
 
     def createGridCollage(self, scene, numx , numy):
         '''Create a collage with specified number of rows and columns'''
@@ -572,6 +592,7 @@ def parse_args():
 #-------------------------------------------------------------------------------
 def main():
     global app
+    global pyview
     # Parse arguments
     parse_args()
 
