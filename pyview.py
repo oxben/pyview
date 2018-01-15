@@ -79,8 +79,8 @@ class PhotoFrameItem(QGraphicsItem):
             self.fitPhoto()
         self.update()
 
-    def fitPhoto(self):
-        '''Fit photo to frame. Use biggest dimension to set the photo scale.'''
+    def fitPhoto(self, fillAllFrame=True):
+        '''Fit photo to frame'''
         photoWidth = self.photo.pixmap().width()
         photoHeight = self.photo.pixmap().height()
         frameWidth = self.rect.width()
@@ -91,10 +91,19 @@ class PhotoFrameItem(QGraphicsItem):
             widthRatio = photoWidth / frameWidth
         if photoHeight > frameHeight:
             heightRatio = photoHeight / frameHeight
-        if widthRatio > 1 and widthRatio > heightRatio:
-            self.photo.setScale(self.photo.scale() * (frameWidth / photoWidth))
-        elif heightRatio > 1:
-            self.photo.setScale(self.photo.scale() * (frameHeight / photoHeight))
+        if fillAllFrame:
+            # Fill all the frame, scaling based on the smallest dimension
+            if widthRatio > 1 and heightRatio > 1:
+                if widthRatio < heightRatio:
+                    self.photo.setScale(self.photo.scale() * (frameWidth / photoWidth))
+                else:
+                    self.photo.setScale(self.photo.scale() * (frameHeight / photoHeight))
+        else:
+            # Make both dimensions fit in the frame, scaling based on the biggest dimension
+            if widthRatio > 1 and widthRatio > heightRatio:
+                self.photo.setScale(self.photo.scale() * (frameWidth / photoWidth))
+            elif heightRatio > 1:
+                self.photo.setScale(self.photo.scale() * (frameHeight / photoHeight))
 
     def boundingRect(self):
         return QRectF(self.rect)
