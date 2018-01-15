@@ -49,6 +49,8 @@ HelpCommands = [
     ('+/-',           'Increase/Decrease photo frame'),
     ('Shift + S',     'Save as collage'),
     ('S',             'Save collage'),
+    ('F',             'Fit photo into frame (fill frame)'),
+    ('Shitf + F',     'Fit photo into frame (fit both dimensions)'),
     ('Numpad /',      'Reset photo position, scale and rotation'),
 ]
 
@@ -95,15 +97,15 @@ class PhotoFrameItem(QGraphicsItem):
             # Fill all the frame, scaling based on the smallest dimension
             if widthRatio > 1 and heightRatio > 1:
                 if widthRatio < heightRatio:
-                    self.photo.setScale(self.photo.scale() * (frameWidth / photoWidth))
+                    self.photo.setScale(frameWidth / photoWidth)
                 else:
-                    self.photo.setScale(self.photo.scale() * (frameHeight / photoHeight))
+                    self.photo.setScale(frameHeight / photoHeight)
         else:
             # Make both dimensions fit in the frame, scaling based on the biggest dimension
             if widthRatio > 1 and widthRatio > heightRatio:
-                self.photo.setScale(self.photo.scale() * (frameWidth / photoWidth))
+                self.photo.setScale(frameWidth / photoWidth)
             elif heightRatio > 1:
-                self.photo.setScale(self.photo.scale() * (frameHeight / photoHeight))
+                self.photo.setScale(frameHeight / photoHeight)
 
     def boundingRect(self):
         return QRectF(self.rect)
@@ -128,9 +130,16 @@ class PhotoFrameItem(QGraphicsItem):
 
     def keyReleaseEvent(self, event):
         logger.debug(str(event.key()))
+        modifiers = event.modifiers()
         if event.key() == Qt.Key_Slash:
             # Reset photo pos, scale and rotation
             self.photo.reset()
+        if event.key() == Qt.Key_F:
+            # Fit photo into frame
+            if modifiers == Qt.NoModifier:
+                self.fitPhoto()
+            elif modifiers == Qt.ShiftModifier:
+                self.fitPhoto(False)
 
     def mouseDoubleClickEvent(self, event):
         filename, filetype = QFileDialog.getOpenFileName(None, 'Open File', os.getcwd(), \
