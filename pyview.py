@@ -80,12 +80,21 @@ class PhotoFrameItem(QGraphicsItem):
         self.update()
 
     def fitPhoto(self):
-        '''Fit photo to frame'''
+        '''Fit photo to frame. Use biggest dimension to set the photo scale.'''
         photoWidth = self.photo.pixmap().width()
-        height = self.photo.pixmap().height()
+        photoHeight = self.photo.pixmap().height()
         frameWidth = self.rect.width()
+        frameHeight = self.rect.height()
+        widthRatio = 0
+        heightRatio = 0
         if photoWidth > frameWidth:
+            widthRatio = photoWidth / frameWidth
+        if photoHeight > frameHeight:
+            heightRatio = photoHeight / frameHeight
+        if widthRatio > 1 and widthRatio > heightRatio:
             self.photo.setScale(self.photo.scale() * (frameWidth / photoWidth))
+        elif heightRatio > 1:
+            self.photo.setScale(self.photo.scale() * (frameHeight / photoHeight))
 
     def boundingRect(self):
         return QRectF(self.rect)
@@ -137,6 +146,7 @@ class PhotoFrameItem(QGraphicsItem):
             filePath = mimeData.urls()[0].toLocalFile()
             logger.debug("File dragged'n'dropped: %s" % filePath)
             self.photo.setPhoto(filePath)
+            self.fitPhoto()
         elif event.proposedAction() == Qt.MoveAction and mimeData.hasText():
             # Swap photos
             # Get source PhotoFrameItem and swap its photo
