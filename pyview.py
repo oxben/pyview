@@ -42,7 +42,6 @@ OpenGLRender = False
 
 filenames = []
 app = None
-pyview = None
 
 HelpCommands = [
     ('Left Button',   'Drag image'),
@@ -331,10 +330,6 @@ class ImageView(QGraphicsView):
                 self.helpItem = HelpItem(QRect(50, 50, 700, 500))
                 self.scene().addItem(self.helpItem)
 
-        elif key == Qt.Key_L:
-            # Change layout
-            pyview.setLayout()
-
         elif key == Qt.Key_S:
             # Save collage to output file
             if (modifiers == Qt.NoModifier and not OutFileName) or \
@@ -468,12 +463,16 @@ class LoopIter:
 
 
 #-------------------------------------------------------------------------------
-class PyView():
+class PyView(QApplication):
     '''PyView class'''
-    def __init__(self):
+
+    def __init__(self, argv):
         '''Constructor. Parse args and build UI.'''
+        super(PyView, self).__init__(argv)
         self.win = None
         self.scene = None
+        self.gfxView = None
+        self.layoutCombo = None
         self.initUI()
         self.win.show()
 
@@ -633,16 +632,9 @@ def parse_args():
 #-------------------------------------------------------------------------------
 def main():
     global app
-    global pyview
-    # Parse arguments
     parse_args()
 
-    # Create an PyQt5 application object.
-    app = QApplication(sys.argv)
-
-    # Create PyView instance
-    pyview = PyView()
-
+    app = PyView(sys.argv)
     sys.exit(app.exec_())
 
 if __name__ == '__main__':
