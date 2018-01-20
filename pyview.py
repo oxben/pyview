@@ -37,6 +37,7 @@ LimitDrag   = True
 OutFileName = "out.png"
 FrameBgColor = QColor(232, 232, 232)
 LastDirectory = None
+DefaultPhoto = 'icon-photo-128x128.png'
 
 OpenGLRender = False
 
@@ -620,13 +621,12 @@ def parse_args():
             sys.exit(0)
 
     if len(args) == 0:
-        logger.error('At least one file must be specified on the command line')
-        usage()
-        sys.exit(1)
-
-    for f in args:
-        filenames.append(os.path.abspath(f))
-        logger.debug(str(filenames))
+        appPath = os.path.abspath(os.path.dirname(sys.argv[0]))
+        filenames.append(os.path.join(appPath, 'icons', DefaultPhoto))
+    else:
+        for f in args:
+            filenames.append(os.path.abspath(f))
+            logger.debug(str(filenames))
 
 
 #-------------------------------------------------------------------------------
