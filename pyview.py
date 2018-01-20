@@ -28,6 +28,7 @@ ScaleOffset = 0.05
 SmallScaleOffset = 0.01
 MaxZoom     = 2.0
 FrameRadius = 15.0
+MaxFrameRadius = 60.0
 FrameWidth  = 10.0
 CollageAspectRatio = (2.0 / 3.0)
 CollageSize = QRectF(0, 0, 1024, 1024 * CollageAspectRatio)
@@ -306,7 +307,7 @@ class ImageView(QGraphicsView):
         key = event.key()
         if key == Qt.Key_Plus:
             # Increase frame width
-            FrameRadius += 1.0
+            FrameRadius = min(MaxFrameRadius, FrameRadius + 1.0)
             self.viewport().update()
 
         elif key == Qt.Key_Minus:
