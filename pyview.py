@@ -446,6 +446,16 @@ class CollageScene(QGraphicsScene):
         brush = QBrush(FrameBgColor)
         self.addRect(QRectF(1 , 1, CollageSize.width() - 2, CollageSize.height() - 2), pen, brush)
 
+    def getPhotosPaths(self):
+        '''Return list containing the paths of all the photos in the scene'''
+        paths = []
+        items = self.items(order=Qt.AscendingOrder)
+        if items:
+            for item in items:
+                if isinstance(item, PhotoItem):
+                    paths.append(item.filename)
+        logger.debug("Current photos: %s" % str(paths))
+        return paths
 
 #-------------------------------------------------------------------------------
 class LoopIter:
@@ -476,6 +486,7 @@ class PyView(QApplication):
         self.layoutCombo = None
         self.appPath = os.path.abspath(os.path.dirname(argv[0]))
         self.currentLayout = ('createGridCollage', (3, 3) )
+        # Init GUI
         self.initUI()
         self.win.show()
 
@@ -604,7 +615,11 @@ class PyView(QApplication):
 
     def layoutChangedHandler(self, desc):
         '''Handler for layoutCombo signal'''
+        global filenames
         self.currentLayout = self.layoutCombo.currentData()
+        # Save list of displayed photos
+        filenames = self.scene.getPhotosPaths()
+        # Set new layout
         funcname, args = self.currentLayout
         self.setLayout(funcname, *args)
 
@@ -612,14 +627,16 @@ class PyView(QApplication):
         '''Handler for aspectRatioCombo signal'''
         global CollageAspectRatio
         global CollageSize
+        global filenames
         width, height = [ int(i) for i in desc.split(':') ]
         CollageAspectRatio = width / height
         CollageSize = QRectF(0, 0, 1024, 1024 * CollageAspectRatio)
         self.win.resize(self.win.width(), self.win.width() * CollageAspectRatio)
-        # Add scene
-        del self.scene  # @todo Is is necessary?
-        self.scene = CollageScene()
-        # Create initial collage
+        # Save list of displayed photos
+        filenames = self.scene.getPhotosPaths()
+        # Clear scene
+        self.scene.clear()
+        # Re-create collage
         funcname, args = self.currentLayout
         self.setLayout(funcname, *args)
         self.gfxView.setScene(self.scene)
