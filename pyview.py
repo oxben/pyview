@@ -36,6 +36,7 @@ CollageSize = QRectF(0, 0, 1024, 1024 * CollageAspectRatio)
 LimitDrag   = True
 OutFileName = "out.png"
 FrameBgColor = QColor(232, 232, 232)
+LastDirectory = None
 
 OpenGLRender = False
 
@@ -147,10 +148,15 @@ class PhotoFrameItem(QGraphicsItem):
                 self.fitPhoto(False)
 
     def mouseDoubleClickEvent(self, event):
-        filename, filetype = QFileDialog.getOpenFileName(None, 'Open File', os.getcwd(), \
+        global LastDirectory
+        if not LastDirectory:
+            LastDirectory = os.getcwd()
+        filename, filetype = QFileDialog.getOpenFileName(None, 'Open File', LastDirectory, \
             "Images (*.png *.gif *.jpg);;All Files (*)")
         logger.info('Open image file: %s' % filename)
         self.photo.setPhoto(filename)
+        if filename:
+            LastDirectory = os.path.dirname(filename)
 
     def dragEnterEvent(self, event):
         logger.debug('dragEnterEvent')
@@ -303,6 +309,7 @@ class ImageView(QGraphicsView):
     def keyReleaseEvent(self, event):
         global FrameRadius
         global OutFileName
+        global LastDirectory
         logger.debug('Key event: %d' % event.key())
         modifiers = event.modifiers()
         key = event.key()
@@ -332,8 +339,12 @@ class ImageView(QGraphicsView):
             # Save collage to output file
             if (modifiers == Qt.NoModifier and not OutFileName) or \
                modifiers == Qt.ShiftModifier:
-                OutFileName, filetype = QFileDialog.getSaveFileName(None, 'Save Collage', os.getcwd(), \
+                if not LastDirectory:
+                    LastDirectory = os.getcwd()
+                OutFileName, filetype = QFileDialog.getSaveFileName(None, 'Save Collage', LastDirectory, \
                     "Images (*.png *.gif *.jpg);;All Files (*)")
+                if OutFileName:
+                    LastDirectory = os.path.dirname(OutFileName)
             elif modifiers == Qt.ControlModifier:
                 return
             logger.info("Collage saved to file: %s" % OutFileName)
