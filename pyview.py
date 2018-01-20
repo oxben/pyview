@@ -14,13 +14,14 @@ import os
 import sys
 from urllib.parse import *
 
-from PyQt5.QtWidgets import QApplication, QWidget, QHBoxLayout
+from PyQt5.QtWidgets import QApplication, QWidget, QHBoxLayout, QVBoxLayout
+from PyQt5.QtWidgets import QToolBar, QLabel, QComboBox
 from PyQt5.QtWidgets import QGraphicsItem, QGraphicsPixmapItem, QGraphicsView, QGraphicsScene
 from PyQt5.QtWidgets import QFileDialog, QOpenGLWidget
 
 from PyQt5.QtGui import QPainter, QPen, QBrush, QPixmap, QImage, QIcon, QDrag, QColor
 
-from PyQt5.QtCore import QRect, QRectF, QPoint, QPointF, QSize, Qt, QMimeData, QUrl
+from PyQt5.QtCore import QObject, Qt, QRect, QRectF, QPoint, QPointF, QSize, QMimeData, QUrl
 
 
 RotOffset   = 5.0
@@ -473,12 +474,30 @@ class PyView():
         # Set window title
         self.win.setWindowTitle("PyView")
         self.win.resize(800, 800 * CollageAspectRatio)
-        layout = QHBoxLayout()
-        self.win.setLayout(layout)
+
+        vbox = QVBoxLayout()
+        self.win.setLayout(vbox)
+
+        # Add toolbar
+        toolbar = QToolBar()
+        vbox.addWidget(toolbar)
+        label = QLabel('Layout')
+        toolbar.addWidget(label)
+        self.layoutCombo = QComboBox()
+        self.layoutCombo.addItem('Grid 2x2', ('createGridCollage', (2, 2) ))
+        self.layoutCombo.addItem('Grid 3x3', ('createGridCollage', (3, 3) ))
+        self.layoutCombo.addItem('Grid 3x4', ('createGridCollage', (3, 4) ))
+        self.layoutCombo.addItem('Grid 4x4', ('createGridCollage', (4, 4) ))
+        self.layoutCombo.addItem('Columns 1B/3', ('createColumnCollage', ('1B/3',) ))
+        self.layoutCombo.addItem('Columns 2/2B/2', ('createColumnCollage', ('2/2B/2',) ))
+        self.layoutCombo.addItem('Columns 3/2B/3', ('createColumnCollage', ('3/2B/3',) ))
+        self.layoutCombo.addItem('Rows 1B/2/3/2B', ('createRowCollage', ('1B/2/3/2B',) ))
+        self.layoutCombo.currentIndexChanged[str].connect(self.layoutChangedHandler)
+        toolbar.addWidget(self.layoutCombo)
 
         # Create GraphicsView
         gfxview = ImageView()
-        layout.addWidget(gfxview)
+        vbox.addWidget(gfxview)
         gfxview.setBackgroundBrush(QBrush(Qt.white))
 
         # Set OpenGL renderer
@@ -488,18 +507,21 @@ class PyView():
         # Add scene
         self.scene = CollageScene()
 
-        # Load pixmap and add it to the scene
-        #self.create_3_2B_3_collage(self.scene)
-        self.create_2_2B_2_collage(self.scene)
-        #self.createGridCollage(self.scene, 3, 4)
+        # Create initial collage
+        self.setLayout('createGridCollage', 2, 2)
 
         gfxview.setScene(self.scene)
 
-    def setLayout(self):
+    def setLayout(self, funcname, *args):
+        logger.debug('funcname=%s *args=%s' % (funcname, str(args)))
         # Clear all items from scene
         self.scene.clear()
         # Create new collage
-        self.create_3_2B_3_collage(self.scene)
+        func = getattr(self, funcname)
+        if len(args) > 0:
+            func(self.scene, *args)
+        else:
+            func(self.scene)
 
     def createGridCollage(self, scene, numx , numy):
         '''Create a collage with specified number of rows and columns'''
@@ -510,47 +532,52 @@ class PyView():
             for y in range(0, numy):
                 scene.addPhoto(QRect(x * photoWidth, y * photoHeight, photoWidth, photoHeight), f.next())
 
-    def create_3_2B_3_collage(self, scene):
+    def createColumnCollage(self, scene, desc):
+        '''Create a collage based on the string passed in'''
+        columns = desc.split('/')
+        # Calculate base width
+        # - Big photos are twice as wide as normal ones
+        baseWidth = CollageSize.width() / (len(columns) + desc.count('B'))
+        # Loop through all columns
         f = LoopIter(filenames)
-        # First column
         x = 0
-        photoWidth  = CollageSize.width() / 4
-        photoHeight =  CollageSize.height() / 3
-        for y in range(0, 3):
-            scene.addPhoto(QRect(x, y * photoHeight, photoWidth, photoHeight), f.next())
-        # Second column
-        x += photoWidth
-        photoWidth  = CollageSize.width() / 2
-        photoHeight =  CollageSize.height() / 2
-        for y in range(0, 2):
-            scene.addPhoto(QRect(x, y * photoHeight, photoWidth, photoHeight), f.next())
-       # Third column
-        x += photoWidth
-        photoWidth  = CollageSize.width() / 4
-        photoHeight =  CollageSize.height() / 3
-        for y in range(0, 3):
-            scene.addPhoto(QRect(x, y * photoHeight, photoWidth, photoHeight), f.next())
+        for col in columns:
+            logger.debug('col=%s' % col)
+            photoCount = int(col.replace('B', ''))
+            if 'B' in col:
+                photoWidth = baseWidth * 2
+            else:
+                photoWidth = baseWidth
+            photoHeight =  CollageSize.height() / photoCount
+            for y in range(0, photoCount):
+                scene.addPhoto(QRect(x, y * photoHeight, photoWidth, photoHeight), f.next())
+            x += photoWidth
 
-    def create_2_2B_2_collage(self, scene):
+    def createRowCollage(self, scene, desc):
+        '''Create a collage based on the string passed in'''
+        rows = desc.split('/')
+        # Calculate base height
+        # - Big photos are twice as high as normal ones
+        baseHeight = CollageSize.height() / (len(rows) + desc.count('B'))
+        # Loop through all columns
         f = LoopIter(filenames)
-        # First column
-        x = 0
-        photoWidth  = CollageSize.width() / 4
-        photoHeight =  CollageSize.height() / 2
-        for y in range(0, 2):
-            scene.addPhoto(QRect(x, y * photoHeight, photoWidth, photoHeight), f.next())
-        # Second column
-        x += photoWidth
-        photoWidth  = CollageSize.width() / 2
-        photoHeight =  CollageSize.height() / 2
-        for y in range(0, 2):
-            scene.addPhoto(QRect(x, y * photoHeight, photoWidth, photoHeight), f.next())
-        # Third column
-        x += photoWidth
-        photoWidth  = CollageSize.width() / 4
-        photoHeight =  CollageSize.height() / 2
-        for y in range(0, 2):
-            scene.addPhoto(QRect(x, y * photoHeight, photoWidth, photoHeight), f.next())
+        y = 0
+        for row in rows:
+            logger.debug('row=%s' % row)
+            photoCount = int(row.replace('B', ''))
+            if 'B' in row:
+                photoHeight = baseHeight * 2
+            else:
+                photoHeight = baseHeight
+            photoWidth =  CollageSize.width() / photoCount
+            for x in range(0, photoCount):
+                scene.addPhoto(QRect(x * photoWidth, y, photoWidth, photoHeight), f.next())
+            y += photoHeight
+
+    def layoutChangedHandler(self, desc):
+        '''Handler for layoutChanged signal'''
+        funcname, args = self.layoutCombo.currentData()
+        self.setLayout(funcname, *args)
 
 
 #-------------------------------------------------------------------------------
