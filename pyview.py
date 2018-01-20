@@ -53,6 +53,7 @@ HelpCommands = [
     ('+/-',           'Increase/Decrease photo frame'),
     ('Shift + S',     'Save as collage'),
     ('S',             'Save collage'),
+    ('R',             'Rotate photo by 90°'),
     ('F',             'Fit photo into frame (fill frame)'),
     ('Shitf + F',     'Fit photo into frame (fit both dimensions)'),
     ('Numpad /',      'Reset photo position, scale and rotation'),
@@ -138,7 +139,7 @@ class PhotoFrameItem(QGraphicsItem):
         if event.key() == Qt.Key_Slash:
             # Reset photo pos, scale and rotation
             self.photo.reset()
-        if event.key() == Qt.Key_F:
+        elif event.key() == Qt.Key_F:
             # Fit photo into frame
             if modifiers == Qt.NoModifier:
                 self.photo.reset()
@@ -146,6 +147,10 @@ class PhotoFrameItem(QGraphicsItem):
             elif modifiers == Qt.ShiftModifier:
                 self.photo.reset()
                 self.fitPhoto(False)
+        elif event.key() == Qt.Key_R:
+            # Rotate by 90 degrees
+            rot = ((self.photo.rotation() // 90) + 1 ) * 90
+            self.photo.setRotation(rot)
 
     def mouseDoubleClickEvent(self, event):
         global LastDirectory
