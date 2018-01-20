@@ -37,7 +37,7 @@ LimitDrag   = True
 OutFileName = "out.png"
 FrameBgColor = QColor(232, 232, 232)
 LastDirectory = None
-DefaultPhoto = 'icon-photo-128x128.png'
+DefaultPhoto = 'icon-photo-64x64.png'
 
 OpenGLRender = False
 
@@ -474,6 +474,7 @@ class PyView(QApplication):
         self.scene = None
         self.gfxView = None
         self.layoutCombo = None
+        self.appPath = os.path.abspath(os.path.dirname(argv[0]))
         self.currentLayout = ('createGridCollage', (3, 3) )
         self.initUI()
         self.win.show()
@@ -485,6 +486,7 @@ class PyView(QApplication):
 
         # Set window title
         self.win.setWindowTitle("PyView")
+        self.win.setWindowIcon(QIcon(os.path.join(self.appPath, 'icons', DefaultPhoto)))
         self.win.resize(800, 800 * CollageAspectRatio)
 
         vbox = QVBoxLayout()
