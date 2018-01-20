@@ -474,6 +474,7 @@ class PyView(QApplication):
         self.scene = None
         self.gfxView = None
         self.layoutCombo = None
+        self.currentLayout = ('createGridCollage', (3, 3) )
         self.initUI()
         self.win.show()
 
@@ -492,7 +493,7 @@ class PyView(QApplication):
         # Add toolbar
         toolbar = QToolBar()
         vbox.addWidget(toolbar)
-        label = QLabel('Layout')
+        label = QLabel('Layout: ')
         toolbar.addWidget(label)
         self.layoutCombo = QComboBox()
         self.layoutCombo.addItem('Grid 2x2', ('createGridCollage', (2, 2) ))
@@ -505,25 +506,37 @@ class PyView(QApplication):
         self.layoutCombo.addItem('Columns 3/1B/3', ('createColumnCollage', ('3/1B/3',) ))
         self.layoutCombo.addItem('Columns 3/2B/3', ('createColumnCollage', ('3/2B/3',) ))
         self.layoutCombo.addItem('Rows 1B/2/3/2B', ('createRowCollage', ('1B/2/3/2B',) ))
+        self.layoutCombo.setCurrentIndex(1)
         self.layoutCombo.currentIndexChanged[str].connect(self.layoutChangedHandler)
         toolbar.addWidget(self.layoutCombo)
+        toolbar.addSeparator()
+        label = QLabel('Aspect Ratio: ')
+        toolbar.addWidget(label)
+        self.aspectRatioCombo = QComboBox()
+        self.aspectRatioCombo.addItem('1:1')
+        self.aspectRatioCombo.addItem('2:3')
+        self.aspectRatioCombo.addItem('3:4')
+        self.aspectRatioCombo.setCurrentIndex(2)
+        self.aspectRatioCombo.currentIndexChanged[str].connect(self.aspectRatioChangedHandler)
+        toolbar.addWidget(self.aspectRatioCombo)
 
         # Create GraphicsView
-        gfxview = ImageView()
-        vbox.addWidget(gfxview)
-        gfxview.setBackgroundBrush(QBrush(Qt.white))
+        self.gfxView = ImageView()
+        vbox.addWidget(self.gfxView)
+        self.gfxView.setBackgroundBrush(QBrush(Qt.white))
 
         # Set OpenGL renderer
         if OpenGLRender:
-            gfxview.setViewport(QOpenGLWidget())
+            self.gfxView.setViewport(QOpenGLWidget())
 
         # Add scene
         self.scene = CollageScene()
 
         # Create initial collage
-        self.setLayout('createGridCollage', 2, 2)
+        funcname, args = self.currentLayout
+        self.setLayout(funcname, *args)
 
-        gfxview.setScene(self.scene)
+        self.gfxView.setScene(self.scene)
 
     def setLayout(self, funcname, *args):
         logger.debug('funcname=%s *args=%s' % (funcname, str(args)))
@@ -588,10 +601,26 @@ class PyView(QApplication):
             y += photoHeight
 
     def layoutChangedHandler(self, desc):
-        '''Handler for layoutChanged signal'''
-        funcname, args = self.layoutCombo.currentData()
+        '''Handler for layoutCombo signal'''
+        self.currentLayout = self.layoutCombo.currentData()
+        funcname, args = self.currentLayout
         self.setLayout(funcname, *args)
 
+    def aspectRatioChangedHandler(self, desc):
+        '''Handler for aspectRatioCombo signal'''
+        global CollageAspectRatio
+        global CollageSize
+        width, height = [ int(i) for i in desc.split(':') ]
+        CollageAspectRatio = width / height
+        CollageSize = QRectF(0, 0, 1024, 1024 * CollageAspectRatio)
+        self.win.resize(self.win.width(), self.win.width() * CollageAspectRatio)
+        # Add scene
+        del self.scene  # @todo Is is necessary?
+        self.scene = CollageScene()
+        # Create initial collage
+        funcname, args = self.currentLayout
+        self.setLayout(funcname, *args)
+        self.gfxView.setScene(self.scene)
 
 #-------------------------------------------------------------------------------
 def usage():
