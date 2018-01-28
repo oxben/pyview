@@ -14,11 +14,11 @@ import os
 import sys
 from urllib.parse import *
 
-from PyQt5.QtWidgets import QApplication, QWidget
+from PyQt5.QtWidgets import QApplication, QWidget, QStyle
 from PyQt5.QtWidgets import QBoxLayout, QHBoxLayout, QVBoxLayout, QSpacerItem
 from PyQt5.QtWidgets import QToolBar, QLabel, QComboBox
 from PyQt5.QtWidgets import QGraphicsItem, QGraphicsPixmapItem, QGraphicsView, QGraphicsScene
-from PyQt5.QtWidgets import QFileDialog, QOpenGLWidget
+from PyQt5.QtWidgets import QFileDialog, QMessageBox, QOpenGLWidget
 
 from PyQt5.QtGui import QPainter, QPen, QBrush, QPixmap, QImage, QIcon, QDrag, QColor
 
@@ -35,7 +35,7 @@ FrameWidth  = 10.0
 CollageAspectRatio = (3.0 / 2.0)
 CollageSize = QRectF(0, 0, 2048, 2048 * (1 / CollageAspectRatio))
 LimitDrag   = True
-OutFileName = "out.png"
+OutFileName = ''
 FrameBgColor = QColor(232, 232, 232)
 LastDirectory = None
 DefaultPhoto = 'icon-photo-64x64.png'
@@ -347,10 +347,23 @@ class ImageView(QGraphicsView):
         self.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.helpItem = None
 
+    def save(self, filename):
+        '''Save scene to image file'''
+        self.scene().clearSelection()
+        image = QImage(CollageSize.width(), CollageSize.height(), QImage.Format_RGB32)
+        image.fill(Qt.black)
+        painter = QPainter(image)
+        painter.setRenderHints(QPainter.Antialiasing | QPainter.SmoothPixmapTransform)
+        self.render(painter)
+        image.save(OutFileName)
+        # Explicitely delete painter to avoid the following error:
+        # "QPaintDevice: Cannot destroy paint device that is being painted" + SIGSEV
+        del painter
+        logger.info("Collage saved to file: %s" % OutFileName)
+
     def keyReleaseEvent(self, event):
         global FrameRadius
         global OutFileName
-        global LastDirectory
         logger.debug('Key event: %d' % event.key())
         modifiers = event.modifiers()
         key = event.key()
@@ -374,29 +387,13 @@ class ImageView(QGraphicsView):
 
         elif key == Qt.Key_S:
             # Save collage to output file
+            saveas = False
             if (modifiers == Qt.NoModifier and not OutFileName) or \
                modifiers == Qt.ShiftModifier:
-                if not LastDirectory:
-                    LastDirectory = os.getcwd()
-                OutFileName, filetype = QFileDialog.getSaveFileName(None, 'Save Collage', LastDirectory, \
-                    "Images (*.png *.gif *.jpg);;All Files (*)")
-                if OutFileName:
-                    LastDirectory = os.path.dirname(OutFileName)
+               saveas = True
             elif modifiers == Qt.ControlModifier:
                 return
-            logger.info("Collage saved to file: %s" % OutFileName)
-
-            self.scene().clearSelection()
-            image = QImage(CollageSize.width(), CollageSize.height(), QImage.Format_RGB32)
-            image.fill(Qt.black)
-            painter = QPainter(image)
-            painter.setRenderHints(QPainter.Antialiasing | QPainter.SmoothPixmapTransform)
-            self.render(painter)
-            image.save(OutFileName)
-            # Explicitely delete painter to avoid the following error:
-            # "QPaintDevice: Cannot destroy paint device that is being painted" + SIGSEV
-            del painter
-
+            app.saveCollage(saveas)
         else:
             # Pass event to default handler
             super(ImageView, self).keyReleaseEvent(event)
@@ -406,7 +403,6 @@ class ImageView(QGraphicsView):
         return w
 
     def resizeEvent(self, event):
-        logger.debug("size=%s" % str(self.size()))
         self.fitInView(CollageSize, Qt.KeepAspectRatio)
 
     def wheelEvent(self, event):
@@ -530,7 +526,7 @@ class PyView(QApplication):
         self.gfxView = None
         self.layoutCombo = None
         self.appPath = os.path.abspath(os.path.dirname(argv[0]))
-        self.currentLayout = ('createGridCollage', (3, 3) )
+        self.currentLayout = ('createColumnCollage', ('3/2B/3',))
         # Init GUI
         self.initUI()
         self.win.show()
@@ -551,6 +547,12 @@ class PyView(QApplication):
         # Add toolbar
         toolbar = QToolBar()
         vbox.addWidget(toolbar)
+        # Standard Qt Pixmaps: http://doc.qt.io/qt-5/qstyle.html#StandardPixmap-enum
+        icon = self.style().standardIcon(getattr(QStyle, 'SP_FileIcon'))
+        toolbar.addAction(icon, 'New', getattr(self, 'newCollage'))
+        icon = self.style().standardIcon(getattr(QStyle, 'SP_DialogSaveButton'))
+        toolbar.addAction(icon, 'Save', getattr(self, 'saveCollage'))
+        toolbar.addSeparator()
         label = QLabel('Layout: ')
         toolbar.addWidget(label)
         self.layoutCombo = QComboBox()
@@ -564,7 +566,7 @@ class PyView(QApplication):
         self.layoutCombo.addItem('Columns 3/1B/3', ('createColumnCollage', ('3/1B/3',) ))
         self.layoutCombo.addItem('Columns 3/2B/3', ('createColumnCollage', ('3/2B/3',) ))
         self.layoutCombo.addItem('Rows 1B/2/3/2B', ('createRowCollage', ('1B/2/3/2B',) ))
-        self.layoutCombo.setCurrentIndex(1)
+        self.layoutCombo.setCurrentIndex(8)
         self.layoutCombo.currentIndexChanged[str].connect(self.layoutChangedHandler)
         toolbar.addWidget(self.layoutCombo)
         toolbar.addSeparator()
@@ -687,7 +689,32 @@ class PyView(QApplication):
         # Re-create collage
         funcname, args = self.currentLayout
         self.setLayout(funcname, *args)
-        self.gfxView.setScene(self.scene)
+        #self.gfxView.setScene(self.scene)
+
+    def newCollage(self):
+        '''New collage'''
+        ret = QMessageBox.question(self.win,
+            'New collage', 'Are you sure you want to reset your collage?',
+            defaultButton=QMessageBox.Yes)
+        if ret == QMessageBox.Yes:
+            filenames = []
+            self.scene.clear()
+            funcname, args = self.currentLayout
+            self.setLayout(funcname, *args)
+
+    def saveCollage(self, saveas=True):
+        '''Save action handler'''
+        global OutFileName
+        global LastDirectory
+        if saveas or not OutFileName:
+            if not LastDirectory:
+                LastDirectory = os.getcwd()
+            OutFileName, filetype = QFileDialog.getSaveFileName(None, 'Save Collage', LastDirectory, \
+                "Images (*.png *.gif *.jpg);;All Files (*)")
+        if OutFileName:
+            LastDirectory = os.path.dirname(OutFileName)
+            self.win.setWindowTitle('PyView - %s' % OutFileName)
+            self.gfxView.save(OutFileName)
 
 #-------------------------------------------------------------------------------
 def usage():
