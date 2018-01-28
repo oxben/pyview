@@ -36,7 +36,7 @@ CollageAspectRatio = (3.0 / 2.0)
 CollageSize = QRectF(0, 0, 2048, 2048 * (1 / CollageAspectRatio))
 LimitDrag   = True
 OutFileName = ''
-FrameBgColor = QColor(232, 232, 232)
+FrameBgColor = QColor(216, 216, 216)
 LastDirectory = None
 DefaultPhoto = 'icon-photo-128x128.png'
 
