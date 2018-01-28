@@ -38,7 +38,7 @@ LimitDrag   = True
 OutFileName = ''
 FrameBgColor = QColor(232, 232, 232)
 LastDirectory = None
-DefaultPhoto = 'icon-photo-64x64.png'
+DefaultPhoto = 'icon-photo-128x128.png'
 
 OpenGLRender = False
 
@@ -463,7 +463,6 @@ class CollageScene(QGraphicsScene):
     '''Scene containing the frames and the photos'''
     def __init__(self):
         super(CollageScene, self).__init__()
-        self.setSceneRect(CollageSize)
         self.bgRect = None
         self.__initBackground()
 
@@ -484,7 +483,8 @@ class CollageScene(QGraphicsScene):
         '''Add rect to provide background for PhotoFrameItem's'''
         pen = QPen(FrameBgColor)
         brush = QBrush(FrameBgColor)
-        self.bgRect = QRectF(1 , 1, CollageSize.width() - 2, CollageSize.height() - 2)
+        self.bgRect = QRectF(FrameWidth/2, FrameWidth/2,
+                             CollageSize.width() - FrameWidth, CollageSize.height() - FrameWidth)
         self.addRect(self.bgRect, pen, brush)
 
     def getPhotosPaths(self):
