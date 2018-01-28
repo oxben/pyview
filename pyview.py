@@ -14,7 +14,8 @@ import os
 import sys
 from urllib.parse import *
 
-from PyQt5.QtWidgets import QApplication, QWidget, QHBoxLayout, QVBoxLayout
+from PyQt5.QtWidgets import QApplication, QWidget
+from PyQt5.QtWidgets import QBoxLayout, QHBoxLayout, QVBoxLayout, QSpacerItem
 from PyQt5.QtWidgets import QToolBar, QLabel, QComboBox
 from PyQt5.QtWidgets import QGraphicsItem, QGraphicsPixmapItem, QGraphicsView, QGraphicsScene
 from PyQt5.QtWidgets import QFileDialog, QOpenGLWidget
@@ -31,8 +32,8 @@ MaxZoom     = 2.0
 FrameRadius = 15.0
 MaxFrameRadius = 60.0
 FrameWidth  = 10.0
-CollageAspectRatio = (2.0 / 3.0)
-CollageSize = QRectF(0, 0, 1024, 1024 * CollageAspectRatio)
+CollageAspectRatio = (3.0 / 2.0)
+CollageSize = QRectF(0, 0, 2048, 2048 * (1 / CollageAspectRatio))
 LimitDrag   = True
 OutFileName = "out.png"
 FrameBgColor = QColor(232, 232, 232)
@@ -301,6 +302,41 @@ class PhotoItem(QGraphicsPixmapItem):
 
 
 #-------------------------------------------------------------------------------
+class AspectRatioWidget(QWidget):
+    '''Widget that keeps the aspect ratio of child widget on resize'''
+    def __init__(self, widget, aspectRatio):
+        super(AspectRatioWidget, self).__init__()
+        self.layout = QBoxLayout(QBoxLayout.LeftToRight, self)
+        self.layout.addItem(QSpacerItem(0, 0))
+        self.layout.addWidget(widget);
+        self.layout.addItem(QSpacerItem(0, 0))
+        self.setAspectRatio(aspectRatio)
+
+    def setAspectRatio(self, aspectRatio):
+        self.aspectRatio = aspectRatio
+        self.updateAspectRatio()
+
+    def updateAspectRatio(self):
+        newAspectRatio = self.size().width() / self.size().height()
+        if (newAspectRatio > self.aspectRatio):
+            # Too wide
+            self.layout.setDirection(QBoxLayout.LeftToRight)
+            widgetStretch = self.height() * self.aspectRatio
+            outerStretch = (self.width() - widgetStretch) / 2 + 0.5
+        else:
+            # Too tall
+            self.layout.setDirection(QBoxLayout.TopToBottom)
+            widgetStretch = self.width() * (1 / self.aspectRatio)
+            outerStretch = (self.height() - widgetStretch) / 2 + 0.5
+
+        self.layout.setStretch(0, outerStretch);
+        self.layout.setStretch(1, widgetStretch);
+        self.layout.setStretch(2, outerStretch);
+
+    def resizeEvent(self, event):
+        self.updateAspectRatio()
+
+#-------------------------------------------------------------------------------
 class ImageView(QGraphicsView):
     '''GraphicsView containing the scene'''
     def __init__(self, parent=None):
@@ -370,6 +406,7 @@ class ImageView(QGraphicsView):
         return w
 
     def resizeEvent(self, event):
+        logger.debug("size=%s" % str(self.size()))
         self.fitInView(CollageSize, Qt.KeepAspectRatio)
 
     def wheelEvent(self, event):
@@ -430,6 +467,8 @@ class CollageScene(QGraphicsScene):
     '''Scene containing the frames and the photos'''
     def __init__(self):
         super(CollageScene, self).__init__()
+        self.setSceneRect(CollageSize)
+        self.bgRect = None
         self.__initBackground()
 
     def addPhoto(self, rect, filepath):
@@ -449,7 +488,8 @@ class CollageScene(QGraphicsScene):
         '''Add rect to provide background for PhotoFrameItem's'''
         pen = QPen(FrameBgColor)
         brush = QBrush(FrameBgColor)
-        self.addRect(QRectF(1 , 1, CollageSize.width() - 2, CollageSize.height() - 2), pen, brush)
+        self.bgRect = QRectF(1 , 1, CollageSize.width() - 2, CollageSize.height() - 2)
+        self.addRect(self.bgRect, pen, brush)
 
     def getPhotosPaths(self):
         '''Return list containing the paths of all the photos in the scene'''
@@ -503,7 +543,7 @@ class PyView(QApplication):
         # Set window title
         self.win.setWindowTitle("PyView")
         self.win.setWindowIcon(QIcon(os.path.join(self.appPath, 'icons', DefaultPhoto)))
-        self.win.resize(800, 800 * CollageAspectRatio)
+        self.win.resize(800, 800 * (1 / CollageAspectRatio))
 
         vbox = QVBoxLayout()
         self.win.setLayout(vbox)
@@ -532,15 +572,17 @@ class PyView(QApplication):
         toolbar.addWidget(label)
         self.aspectRatioCombo = QComboBox()
         self.aspectRatioCombo.addItem('1:1')
-        self.aspectRatioCombo.addItem('2:3')
-        self.aspectRatioCombo.addItem('3:4')
-        self.aspectRatioCombo.setCurrentIndex(2)
+        self.aspectRatioCombo.addItem('3:2')
+        self.aspectRatioCombo.addItem('4:3')
+        self.aspectRatioCombo.addItem('16:9')
+        self.aspectRatioCombo.setCurrentIndex(1)
         self.aspectRatioCombo.currentIndexChanged[str].connect(self.aspectRatioChangedHandler)
         toolbar.addWidget(self.aspectRatioCombo)
 
         # Create GraphicsView
         self.gfxView = ImageView()
-        vbox.addWidget(self.gfxView)
+        self.arWidget = AspectRatioWidget(self.gfxView, CollageAspectRatio)
+        vbox.addWidget(self.arWidget)
         self.gfxView.setBackgroundBrush(QBrush(Qt.white))
 
         # Set OpenGL renderer
@@ -635,8 +677,9 @@ class PyView(QApplication):
         global filenames
         width, height = [ int(i) for i in desc.split(':') ]
         CollageAspectRatio = width / height
-        CollageSize = QRectF(0, 0, 1024, 1024 * CollageAspectRatio)
-        self.win.resize(self.win.width(), self.win.width() * CollageAspectRatio)
+        CollageSize = QRectF(0, 0, 2048, 2048 * (1 / CollageAspectRatio))
+        self.win.resize(self.win.width(), self.win.width() * (1 / CollageAspectRatio))
+        self.arWidget.setAspectRatio(CollageAspectRatio)
         # Save list of displayed photos
         filenames = self.scene.getPhotosPaths()
         # Clear scene
