@@ -14,10 +14,11 @@ import os
 import sys
 from urllib.parse import *
 
-from PyQt5.QtWidgets import QApplication, QWidget, QHBoxLayout, QVBoxLayout
+from PyQt5.QtWidgets import QApplication, QWidget, QStyle
+from PyQt5.QtWidgets import QBoxLayout, QHBoxLayout, QVBoxLayout, QSpacerItem
 from PyQt5.QtWidgets import QToolBar, QLabel, QComboBox
 from PyQt5.QtWidgets import QGraphicsItem, QGraphicsPixmapItem, QGraphicsView, QGraphicsScene
-from PyQt5.QtWidgets import QFileDialog, QOpenGLWidget
+from PyQt5.QtWidgets import QFileDialog, QMessageBox, QOpenGLWidget
 
 from PyQt5.QtGui import QPainter, QPen, QBrush, QPixmap, QImage, QIcon, QDrag, QColor
 
@@ -31,18 +32,18 @@ MaxZoom     = 2.0
 FrameRadius = 15.0
 MaxFrameRadius = 60.0
 FrameWidth  = 10.0
-CollageAspectRatio = (2.0 / 3.0)
-CollageSize = QRectF(0, 0, 2048, 2048 * CollageAspectRatio)
+CollageAspectRatio = (3.0 / 2.0)
+CollageSize = QRectF(0, 0, 2048, 2048 * (1 / CollageAspectRatio))
 LimitDrag   = True
-OutFileName = "out.png"
-FrameBgColor = QColor(232, 232, 232)
+OutFileName = ''
+FrameBgColor = QColor(216, 216, 216)
 LastDirectory = None
+DefaultPhoto = 'icon-photo-128x128.png'
 
 OpenGLRender = False
 
 filenames = []
 app = None
-pyview = None
 
 HelpCommands = [
     ('Left Button',   'Drag image'),
@@ -53,6 +54,7 @@ HelpCommands = [
     ('+/-',           'Increase/Decrease photo frame'),
     ('Shift + S',     'Save as collage'),
     ('S',             'Save collage'),
+    ('R',             'Rotate photo by 90°'),
     ('F',             'Fit photo into frame (fill frame)'),
     ('Shitf + F',     'Fit photo into frame (fit both dimensions)'),
     ('Numpad /',      'Reset photo position, scale and rotation'),
@@ -138,7 +140,7 @@ class PhotoFrameItem(QGraphicsItem):
         if event.key() == Qt.Key_Slash:
             # Reset photo pos, scale and rotation
             self.photo.reset()
-        if event.key() == Qt.Key_F:
+        elif event.key() == Qt.Key_F:
             # Fit photo into frame
             if modifiers == Qt.NoModifier:
                 self.photo.reset()
@@ -146,6 +148,10 @@ class PhotoFrameItem(QGraphicsItem):
             elif modifiers == Qt.ShiftModifier:
                 self.photo.reset()
                 self.fitPhoto(False)
+        elif event.key() == Qt.Key_R:
+            # Rotate by 90 degrees
+            rot = ((self.photo.rotation() // 90) + 1 ) * 90
+            self.photo.setRotation(rot)
 
     def mouseDoubleClickEvent(self, event):
         global LastDirectory
@@ -296,6 +302,41 @@ class PhotoItem(QGraphicsPixmapItem):
 
 
 #-------------------------------------------------------------------------------
+class AspectRatioWidget(QWidget):
+    '''Widget that keeps the aspect ratio of child widget on resize'''
+    def __init__(self, widget, aspectRatio):
+        super(AspectRatioWidget, self).__init__()
+        self.layout = QBoxLayout(QBoxLayout.LeftToRight, self)
+        self.layout.addItem(QSpacerItem(0, 0))
+        self.layout.addWidget(widget);
+        self.layout.addItem(QSpacerItem(0, 0))
+        self.setAspectRatio(aspectRatio)
+
+    def setAspectRatio(self, aspectRatio):
+        self.aspectRatio = aspectRatio
+        self.updateAspectRatio()
+
+    def updateAspectRatio(self):
+        newAspectRatio = self.size().width() / self.size().height()
+        if (newAspectRatio > self.aspectRatio):
+            # Too wide
+            self.layout.setDirection(QBoxLayout.LeftToRight)
+            widgetStretch = self.height() * self.aspectRatio
+            outerStretch = (self.width() - widgetStretch) / 2 + 0.5
+        else:
+            # Too tall
+            self.layout.setDirection(QBoxLayout.TopToBottom)
+            widgetStretch = self.width() * (1 / self.aspectRatio)
+            outerStretch = (self.height() - widgetStretch) / 2 + 0.5
+
+        self.layout.setStretch(0, outerStretch);
+        self.layout.setStretch(1, widgetStretch);
+        self.layout.setStretch(2, outerStretch);
+
+    def resizeEvent(self, event):
+        self.updateAspectRatio()
+
+#-------------------------------------------------------------------------------
 class ImageView(QGraphicsView):
     '''GraphicsView containing the scene'''
     def __init__(self, parent=None):
@@ -306,10 +347,23 @@ class ImageView(QGraphicsView):
         self.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.helpItem = None
 
+    def save(self, filename):
+        '''Save scene to image file'''
+        self.scene().clearSelection()
+        image = QImage(CollageSize.width(), CollageSize.height(), QImage.Format_RGB32)
+        image.fill(Qt.black)
+        painter = QPainter(image)
+        painter.setRenderHints(QPainter.Antialiasing | QPainter.SmoothPixmapTransform)
+        self.render(painter)
+        image.save(OutFileName)
+        # Explicitely delete painter to avoid the following error:
+        # "QPaintDevice: Cannot destroy paint device that is being painted" + SIGSEV
+        del painter
+        logger.info("Collage saved to file: %s" % OutFileName)
+
     def keyReleaseEvent(self, event):
         global FrameRadius
         global OutFileName
-        global LastDirectory
         logger.debug('Key event: %d' % event.key())
         modifiers = event.modifiers()
         key = event.key()
@@ -331,35 +385,15 @@ class ImageView(QGraphicsView):
                 self.helpItem = HelpItem(QRect(50, 50, 700, 500))
                 self.scene().addItem(self.helpItem)
 
-        elif key == Qt.Key_L:
-            # Change layout
-            pyview.setLayout()
-
         elif key == Qt.Key_S:
             # Save collage to output file
+            saveas = False
             if (modifiers == Qt.NoModifier and not OutFileName) or \
                modifiers == Qt.ShiftModifier:
-                if not LastDirectory:
-                    LastDirectory = os.getcwd()
-                OutFileName, filetype = QFileDialog.getSaveFileName(None, 'Save Collage', LastDirectory, \
-                    "Images (*.png *.gif *.jpg);;All Files (*)")
-                if OutFileName:
-                    LastDirectory = os.path.dirname(OutFileName)
+               saveas = True
             elif modifiers == Qt.ControlModifier:
                 return
-            logger.info("Collage saved to file: %s" % OutFileName)
-
-            self.scene().clearSelection()
-            image = QImage(CollageSize.width(), CollageSize.height(), QImage.Format_RGB32)
-            image.fill(Qt.black)
-            painter = QPainter(image)
-            painter.setRenderHints(QPainter.Antialiasing | QPainter.SmoothPixmapTransform)
-            self.render(painter)
-            image.save(OutFileName)
-            # Explicitely delete painter to avoid the following error:
-            # "QPaintDevice: Cannot destroy paint device that is being painted" + SIGSEV
-            del painter
-
+            app.saveCollage(saveas)
         else:
             # Pass event to default handler
             super(ImageView, self).keyReleaseEvent(event)
@@ -429,6 +463,7 @@ class CollageScene(QGraphicsScene):
     '''Scene containing the frames and the photos'''
     def __init__(self):
         super(CollageScene, self).__init__()
+        self.bgRect = None
         self.__initBackground()
 
     def addPhoto(self, rect, filepath):
@@ -448,8 +483,20 @@ class CollageScene(QGraphicsScene):
         '''Add rect to provide background for PhotoFrameItem's'''
         pen = QPen(FrameBgColor)
         brush = QBrush(FrameBgColor)
-        self.addRect(QRectF(1 , 1, CollageSize.width() - 2, CollageSize.height() - 2), pen, brush)
+        self.bgRect = QRectF(FrameWidth/2, FrameWidth/2,
+                             CollageSize.width() - FrameWidth, CollageSize.height() - FrameWidth)
+        self.addRect(self.bgRect, pen, brush)
 
+    def getPhotosPaths(self):
+        '''Return list containing the paths of all the photos in the scene'''
+        paths = []
+        items = self.items(order=Qt.AscendingOrder)
+        if items:
+            for item in items:
+                if isinstance(item, PhotoItem):
+                    paths.append(item.filename)
+        logger.debug("Current photos: %s" % str(paths))
+        return paths
 
 #-------------------------------------------------------------------------------
 class LoopIter:
@@ -468,12 +515,19 @@ class LoopIter:
 
 
 #-------------------------------------------------------------------------------
-class PyView():
+class PyView(QApplication):
     '''PyView class'''
-    def __init__(self):
+
+    def __init__(self, argv):
         '''Constructor. Parse args and build UI.'''
+        super(PyView, self).__init__(argv)
         self.win = None
         self.scene = None
+        self.gfxView = None
+        self.layoutCombo = None
+        self.appPath = os.path.abspath(os.path.dirname(argv[0]))
+        self.currentLayout = ('createColumnCollage', ('3/2B/3',))
+        # Init GUI
         self.initUI()
         self.win.show()
 
@@ -484,7 +538,8 @@ class PyView():
 
         # Set window title
         self.win.setWindowTitle("PyView")
-        self.win.resize(800, 800 * CollageAspectRatio)
+        self.win.setWindowIcon(QIcon(os.path.join(self.appPath, 'icons', DefaultPhoto)))
+        self.win.resize(800, 800 * (1 / CollageAspectRatio))
 
         vbox = QVBoxLayout()
         self.win.setLayout(vbox)
@@ -492,7 +547,13 @@ class PyView():
         # Add toolbar
         toolbar = QToolBar()
         vbox.addWidget(toolbar)
-        label = QLabel('Layout')
+        # Standard Qt Pixmaps: http://doc.qt.io/qt-5/qstyle.html#StandardPixmap-enum
+        icon = self.style().standardIcon(getattr(QStyle, 'SP_FileIcon'))
+        toolbar.addAction(icon, 'New', getattr(self, 'newCollage'))
+        icon = self.style().standardIcon(getattr(QStyle, 'SP_DialogSaveButton'))
+        toolbar.addAction(icon, 'Save', getattr(self, 'saveCollage'))
+        toolbar.addSeparator()
+        label = QLabel('Layout: ')
         toolbar.addWidget(label)
         self.layoutCombo = QComboBox()
         self.layoutCombo.addItem('Grid 2x2', ('createGridCollage', (2, 2) ))
@@ -505,25 +566,39 @@ class PyView():
         self.layoutCombo.addItem('Columns 3/1B/3', ('createColumnCollage', ('3/1B/3',) ))
         self.layoutCombo.addItem('Columns 3/2B/3', ('createColumnCollage', ('3/2B/3',) ))
         self.layoutCombo.addItem('Rows 1B/2/3/2B', ('createRowCollage', ('1B/2/3/2B',) ))
+        self.layoutCombo.setCurrentIndex(8)
         self.layoutCombo.currentIndexChanged[str].connect(self.layoutChangedHandler)
         toolbar.addWidget(self.layoutCombo)
+        toolbar.addSeparator()
+        label = QLabel('Aspect Ratio: ')
+        toolbar.addWidget(label)
+        self.aspectRatioCombo = QComboBox()
+        self.aspectRatioCombo.addItem('1:1')
+        self.aspectRatioCombo.addItem('3:2')
+        self.aspectRatioCombo.addItem('4:3')
+        self.aspectRatioCombo.addItem('16:9')
+        self.aspectRatioCombo.setCurrentIndex(1)
+        self.aspectRatioCombo.currentIndexChanged[str].connect(self.aspectRatioChangedHandler)
+        toolbar.addWidget(self.aspectRatioCombo)
 
         # Create GraphicsView
-        gfxview = ImageView()
-        vbox.addWidget(gfxview)
-        gfxview.setBackgroundBrush(QBrush(Qt.white))
+        self.gfxView = ImageView()
+        self.arWidget = AspectRatioWidget(self.gfxView, CollageAspectRatio)
+        vbox.addWidget(self.arWidget)
+        self.gfxView.setBackgroundBrush(QBrush(Qt.white))
 
         # Set OpenGL renderer
         if OpenGLRender:
-            gfxview.setViewport(QOpenGLWidget())
+            self.gfxView.setViewport(QOpenGLWidget())
 
         # Add scene
         self.scene = CollageScene()
 
         # Create initial collage
-        self.setLayout('createGridCollage', 2, 2)
+        funcname, args = self.currentLayout
+        self.setLayout(funcname, *args)
 
-        gfxview.setScene(self.scene)
+        self.gfxView.setScene(self.scene)
 
     def setLayout(self, funcname, *args):
         logger.debug('funcname=%s *args=%s' % (funcname, str(args)))
@@ -588,10 +663,58 @@ class PyView():
             y += photoHeight
 
     def layoutChangedHandler(self, desc):
-        '''Handler for layoutChanged signal'''
-        funcname, args = self.layoutCombo.currentData()
+        '''Handler for layoutCombo signal'''
+        global filenames
+        self.currentLayout = self.layoutCombo.currentData()
+        # Save list of displayed photos
+        filenames = self.scene.getPhotosPaths()
+        # Set new layout
+        funcname, args = self.currentLayout
         self.setLayout(funcname, *args)
 
+    def aspectRatioChangedHandler(self, desc):
+        '''Handler for aspectRatioCombo signal'''
+        global CollageAspectRatio
+        global CollageSize
+        global filenames
+        width, height = [ int(i) for i in desc.split(':') ]
+        CollageAspectRatio = width / height
+        CollageSize = QRectF(0, 0, 2048, 2048 * (1 / CollageAspectRatio))
+        self.win.resize(self.win.width(), self.win.width() * (1 / CollageAspectRatio))
+        self.arWidget.setAspectRatio(CollageAspectRatio)
+        # Save list of displayed photos
+        filenames = self.scene.getPhotosPaths()
+        # Clear scene
+        self.scene.clear()
+        # Re-create collage
+        funcname, args = self.currentLayout
+        self.setLayout(funcname, *args)
+        #self.gfxView.setScene(self.scene)
+
+    def newCollage(self):
+        '''New collage'''
+        ret = QMessageBox.question(self.win,
+            'New collage', 'Are you sure you want to reset your collage?',
+            defaultButton=QMessageBox.Yes)
+        if ret == QMessageBox.Yes:
+            filenames = []
+            self.scene.clear()
+            funcname, args = self.currentLayout
+            self.setLayout(funcname, *args)
+
+    def saveCollage(self, saveas=True):
+        '''Save action handler'''
+        global OutFileName
+        global LastDirectory
+        if saveas or not OutFileName:
+            if not LastDirectory:
+                LastDirectory = os.getcwd()
+            OutFileName, filetype = QFileDialog.getSaveFileName(None, 'Save Collage', LastDirectory, \
+                "Images (*.png *.gif *.jpg);;All Files (*)")
+        if OutFileName:
+            LastDirectory = os.path.dirname(OutFileName)
+            self.win.setWindowTitle('PyView - %s' % OutFileName)
+            self.gfxView.save(OutFileName)
 
 #-------------------------------------------------------------------------------
 def usage():
@@ -621,28 +744,20 @@ def parse_args():
             sys.exit(0)
 
     if len(args) == 0:
-        logger.error('At least one file must be specified on the command line')
-        usage()
-        sys.exit(1)
-
-    for f in args:
-        filenames.append(os.path.abspath(f))
-        logger.debug(str(filenames))
+        appPath = os.path.abspath(os.path.dirname(sys.argv[0]))
+        filenames.append(os.path.join(appPath, 'icons', DefaultPhoto))
+    else:
+        for f in args:
+            filenames.append(os.path.abspath(f))
+            logger.debug(str(filenames))
 
 
 #-------------------------------------------------------------------------------
 def main():
     global app
-    global pyview
-    # Parse arguments
     parse_args()
 
-    # Create an PyQt5 application object.
-    app = QApplication(sys.argv)
-
-    # Create PyView instance
-    pyview = PyView()
-
+    app = PyView(sys.argv)
     sys.exit(app.exec_())
 
 if __name__ == '__main__':
