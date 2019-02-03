@@ -32,7 +32,7 @@ FrameRadius = 15.0
 MaxFrameRadius = 60.0
 FrameWidth  = 10.0
 CollageAspectRatio = (2.0 / 3.0)
-CollageSize = QRectF(0, 0, 1024, 1024 * CollageAspectRatio)
+CollageSize = QRectF(0, 0, 2048, 2048 * CollageAspectRatio)
 LimitDrag   = True
 OutFileName = "out.png"
 FrameBgColor = QColor(232, 232, 232)
@@ -499,8 +499,10 @@ class PyView():
         self.layoutCombo.addItem('Grid 3x3', ('createGridCollage', (3, 3) ))
         self.layoutCombo.addItem('Grid 3x4', ('createGridCollage', (3, 4) ))
         self.layoutCombo.addItem('Grid 4x4', ('createGridCollage', (4, 4) ))
+        self.layoutCombo.addItem('Grid 5x5', ('createGridCollage', (5, 5) ))
         self.layoutCombo.addItem('Columns 1B/3', ('createColumnCollage', ('1B/3',) ))
         self.layoutCombo.addItem('Columns 2/2B/2', ('createColumnCollage', ('2/2B/2',) ))
+        self.layoutCombo.addItem('Columns 3/1B/3', ('createColumnCollage', ('3/1B/3',) ))
         self.layoutCombo.addItem('Columns 3/2B/3', ('createColumnCollage', ('3/2B/3',) ))
         self.layoutCombo.addItem('Rows 1B/2/3/2B', ('createRowCollage', ('1B/2/3/2B',) ))
         self.layoutCombo.currentIndexChanged[str].connect(self.layoutChangedHandler)
