@@ -54,7 +54,8 @@ HelpCommands = [
     ('+/-',           'Increase/Decrease photo frame'),
     ('Shift + S',     'Save as collage'),
     ('S',             'Save collage'),
-    ('R',             'Rotate photo by 90°'),
+    ('R',             'Rotate photo by 90° clockwise'),
+    ('Shift + R',     'Rotate photo by 90° counter-clockwise'),
     ('F',             'Fit photo into frame (fill frame)'),
     ('Shitf + F',     'Fit photo into frame (fit both dimensions)'),
     ('Numpad /',      'Reset photo position, scale and rotation'),
@@ -150,7 +151,11 @@ class PhotoFrameItem(QGraphicsItem):
                 self.fitPhoto(False)
         elif event.key() == Qt.Key_R:
             # Rotate by 90 degrees
-            rot = ((self.photo.rotation() // 90) + 1 ) * 90
+            if modifiers == Qt.NoModifier:
+                rotInc = 1
+            elif modifiers == Qt.ShiftModifier:
+                rotInc = -1
+            rot = ((self.photo.rotation() // 90) + rotInc ) * 90
             self.photo.setRotation(rot)
 
     def mouseDoubleClickEvent(self, event):
