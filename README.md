@@ -14,4 +14,4 @@ Created it to learn PyQt5 API.
 ## Usage
 
     cd pyview
-    ./pyview [image1...imageN]
+    ./pyview.py [image1...imageN]

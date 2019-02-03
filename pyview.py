@@ -731,7 +731,7 @@ class PyView(QApplication):
 def usage():
     '''Display usage of the application'''
     print('Usage: ' +  os.path.basename(sys.argv[0]) + \
-          'image1...imageN')
+          ' [image1...imageN]')
     print("\nOptions:\n")
     print("  -h         This help message")
     print("\nCommands:\n")
