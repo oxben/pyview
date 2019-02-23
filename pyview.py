@@ -11,6 +11,7 @@ import getopt
 import json
 import logging
 import os
+import signal
 import sys
 
 from PyQt5.QtWidgets import QApplication, QWidget, QStyle
@@ -786,6 +787,10 @@ def main():
     '''Main function'''
     global app
     parse_args()
+
+    # Quit application on Ctrl+C
+    # https://stackoverflow.com/questions/5160577/ctrl-c-doesnt-work-with-pyqt
+    signal.signal(signal.SIGINT, signal.SIG_DFL)
 
     app = PyView(sys.argv)
     sys.exit(app.exec_())
