@@ -513,11 +513,13 @@ class LoopIter:
     def __iter__(self):
         return self
 
-    def next(self):
+    def __next__(self):
         item = self.l[self.i]
         self.i = (self.i + 1)  % len(self.l)
         return item
 
+    def next(self):
+        return self.__next__()
 
 #-------------------------------------------------------------------------------
 class PyView(QApplication):
