@@ -61,7 +61,7 @@ HelpCommands = [
     ('Numpad /',      'Reset photo position, scale and rotation'),
 ]
 
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
@@ -743,7 +743,7 @@ def usage():
 def parse_args():
     '''Parse application arguments. Build list of filenames.'''
     try:
-        opts, args = getopt.getopt(sys.argv[1:], 'h', ['help'])
+        opts, args = getopt.getopt(sys.argv[1:], 'Dh', ['help'])
     except getopt.GetoptError as err:
         logger.error(str(err))
         usage()
@@ -753,6 +753,8 @@ def parse_args():
         if o == '-h' or o == '--help':
             usage()
             sys.exit(0)
+        elif o == '-D':
+            logger.setLevel(logging.DEBUG)
 
     if len(args) == 0:
         appPath = os.path.abspath(os.path.dirname(sys.argv[0]))
