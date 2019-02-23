@@ -567,6 +567,7 @@ class PyView(QApplication):
         self.layoutCombo.addItem('Grid 4x3', ('createGridCollage', (4, 3) ))
         self.layoutCombo.addItem('Grid 4x4', ('createGridCollage', (4, 4) ))
         self.layoutCombo.addItem('Grid 5x5', ('createGridCollage', (5, 5) ))
+        self.layoutCombo.addItem('Grid 7x1', ('createGridCollage', (7, 1) ))
         self.layoutCombo.addItem('Columns 1B/3', ('createColumnCollage', ('1B/3',) ))
         self.layoutCombo.addItem('Columns 2/2B/2', ('createColumnCollage', ('2/2B/2',) ))
         self.layoutCombo.addItem('Columns 3/1B/3', ('createColumnCollage', ('3/1B/3',) ))
