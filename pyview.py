@@ -18,7 +18,7 @@ from PyQt5.QtWidgets import QApplication, QWidget, QStyle
 from PyQt5.QtWidgets import QBoxLayout, QVBoxLayout, QSpacerItem
 from PyQt5.QtWidgets import QToolBar, QLabel, QComboBox
 from PyQt5.QtWidgets import QGraphicsItem, QGraphicsPixmapItem, QGraphicsView, QGraphicsScene
-from PyQt5.QtWidgets import QFileDialog, QMessageBox, QOpenGLWidget
+from PyQt5.QtWidgets import QFileDialog, QMessageBox, QOpenGLWidget, QColorDialog
 
 from PyQt5.QtGui import QPainter, QPen, QBrush, QPixmap, QImage, QIcon, QDrag, QColor
 
@@ -40,6 +40,7 @@ CollageAspectRatio = (3.0 / 2.0)
 CollageSize = QRectF(0, 0, 2048, 2048 * (1 / CollageAspectRatio))
 LimitDrag   = True
 OutFileName = ''
+FrameColor = Qt.white
 FrameBgColor = QColor(216, 216, 216)
 LastDirectory = None
 DefaultPhoto = 'icon-photo-128x128.png'
@@ -125,7 +126,7 @@ class PhotoFrameItem(QGraphicsItem):
     def paint(self, painter, option, widget=None):
         '''Paint widget'''
         pen = painter.pen()
-        pen.setColor(Qt.white)
+        pen.setColor(FrameColor)
         #pen.setWidth(FrameWidth)
         pen.setWidth(FrameRadius)
         painter.setPen(pen)
@@ -571,7 +572,7 @@ class PyView(QApplication):
         toolbar.addAction(icon, 'New', getattr(self, 'newCollage'))
         icon = self.style().standardIcon(getattr(QStyle, 'SP_DialogSaveButton'))
         toolbar.addAction(icon, 'Save', getattr(self, 'saveCollage'))
-        toolbar.addSeparator()
+        # Layout combobox
         label = QLabel('Layout: ')
         toolbar.addWidget(label)
         self.layoutCombo = QComboBox()
@@ -590,6 +591,7 @@ class PyView(QApplication):
         self.layoutCombo.setCurrentIndex(8)
         self.layoutCombo.currentIndexChanged[str].connect(self.layoutChangedHandler)
         toolbar.addWidget(self.layoutCombo)
+        # Aspect ratio combobox
         toolbar.addSeparator()
         label = QLabel('Aspect Ratio: ')
         toolbar.addWidget(label)
@@ -606,12 +608,16 @@ class PyView(QApplication):
         self.aspectRatioCombo.setCurrentIndex(2)
         self.aspectRatioCombo.currentIndexChanged[str].connect(self.aspectRatioChangedHandler)
         toolbar.addWidget(self.aspectRatioCombo)
+        # Frame color button
+        toolbar.addSeparator()
+        icon = self.style().standardIcon(getattr(QStyle, 'SP_MediaStop'))
+        toolbar.addAction(icon, 'Choose frame color', getattr(self, 'setFrameColor'))
 
         # Create GraphicsView
         self.gfxView = ImageView()
         self.arWidget = AspectRatioWidget(self.gfxView, CollageAspectRatio)
         vbox.addWidget(self.arWidget)
-        self.gfxView.setBackgroundBrush(QBrush(Qt.white))
+        self.gfxView.setBackgroundBrush(QBrush(FrameColor))
 
         # Set OpenGL renderer
         if OpenGLRender:
@@ -743,6 +749,12 @@ class PyView(QApplication):
             LastDirectory = os.path.dirname(OutFileName)
             self.win.setWindowTitle('PyView - %s' % OutFileName)
             self.gfxView.save(OutFileName)
+
+    def setFrameColor(self):
+        '''Set color of the photo frames'''
+        global FrameColor
+        FrameColor = QColorDialog.getColor()
+        self.gfxView.setBackgroundBrush(QBrush(FrameColor))
 
 #-------------------------------------------------------------------------------
 def usage():
