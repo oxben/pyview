@@ -566,6 +566,7 @@ class PyView(QApplication):
 
         # Add toolbar
         toolbar = QToolBar()
+        toolbar.setStyleSheet('QToolBar{spacing:5px;}')
         vbox.addWidget(toolbar)
         # Standard Qt Pixmaps: http://doc.qt.io/qt-5/qstyle.html#StandardPixmap-enum
         icon = self.style().standardIcon(getattr(QStyle, 'SP_FileIcon'))
@@ -573,6 +574,7 @@ class PyView(QApplication):
         icon = self.style().standardIcon(getattr(QStyle, 'SP_DialogSaveButton'))
         toolbar.addAction(icon, 'Save', getattr(self, 'saveCollage'))
         # Layout combobox
+        toolbar.addSeparator()
         label = QLabel('Layout: ')
         toolbar.addWidget(label)
         self.layoutCombo = QComboBox()
@@ -592,7 +594,6 @@ class PyView(QApplication):
         self.layoutCombo.currentIndexChanged[str].connect(self.layoutChangedHandler)
         toolbar.addWidget(self.layoutCombo)
         # Aspect ratio combobox
-        toolbar.addSeparator()
         label = QLabel('Aspect Ratio: ')
         toolbar.addWidget(label)
         self.aspectRatioCombo = QComboBox()
@@ -610,7 +611,7 @@ class PyView(QApplication):
         toolbar.addWidget(self.aspectRatioCombo)
         # Frame color button
         toolbar.addSeparator()
-        icon = self.style().standardIcon(getattr(QStyle, 'SP_MediaStop'))
+        icon = QIcon(os.path.join(self.appPath, 'icons', 'frame-color.svg'))
         toolbar.addAction(icon, 'Choose frame color', getattr(self, 'setFrameColor'))
 
         # Create GraphicsView
