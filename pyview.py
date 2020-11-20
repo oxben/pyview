@@ -331,27 +331,33 @@ class AspectRatioWidget(QWidget):
         self.setAspectRatio(aspectRatio)
 
     def setAspectRatio(self, aspectRatio):
+        '''Set new aspect ratio'''
         self.aspectRatio = aspectRatio
         self.updateAspectRatio()
 
     def updateAspectRatio(self):
+        '''
+        Update layout direction and stretch of spacer items, based on current
+        size and aspect ratio, to keep the child widget's aspect ratio correct
+        '''
         newAspectRatio = self.size().width() / self.size().height()
         if newAspectRatio > self.aspectRatio:
-            # Too wide
+            # Too wide : set spacers at left and right
             self.layout.setDirection(QBoxLayout.LeftToRight)
             widgetStretch = self.height() * self.aspectRatio
             outerStretch = (self.width() - widgetStretch) / 2 + 0.5
         else:
-            # Too tall
+            # Too tall : set spacers at top and botton
             self.layout.setDirection(QBoxLayout.TopToBottom)
             widgetStretch = self.width() * (1 / self.aspectRatio)
             outerStretch = (self.height() - widgetStretch) / 2 + 0.5
 
-        self.layout.setStretch(0, outerStretch)
-        self.layout.setStretch(1, widgetStretch)
-        self.layout.setStretch(2, outerStretch)
+        self.layout.setStretch(0, int(outerStretch))
+        self.layout.setStretch(1, int(widgetStretch))
+        self.layout.setStretch(2, int(outerStretch))
 
     def resizeEvent(self, event):
+        '''Event received on window resize'''
         self.updateAspectRatio()
 
 #-------------------------------------------------------------------------------
@@ -485,6 +491,7 @@ class CollageScene(QGraphicsScene):
         self._initBackground()
 
     def addPhoto(self, rect, filepath):
+        '''Add a photo item to the scene'''
         logger.info('Add image: %s', filepath)
         frame = PhotoFrameItem(QRect(0, 0, rect.width(), rect.height()))
         frame.setPos(rect.x(), rect.y())
@@ -494,6 +501,7 @@ class CollageScene(QGraphicsScene):
         self.addItem(frame)
 
     def clear(self):
+        '''Remove all items from the scene'''
         super(CollageScene, self).clear()
         self._initBackground()
 
@@ -634,6 +642,7 @@ class PyView(QApplication):
         self.gfxView.setScene(self.scene)
 
     def setLayout(self, funcname, *args):
+        '''Set collage new layout'''
         logger.debug('funcname=%s *args=%s', funcname, str(args))
         # Clear all items from scene
         self.scene.clear()
