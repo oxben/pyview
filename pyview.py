@@ -732,8 +732,8 @@ class PyView(QApplication):
     def createGridCollage(self, scene, numx, numy):
         '''Create a collage with specified number of rows and columns'''
         f = LoopIter(filenames)
-        photoWidth  = CollageSize.width() / numx
-        photoHeight =  CollageSize.height() / numy
+        photoWidth  = round(CollageSize.width() / numx)
+        photoHeight =  round(CollageSize.height() / numy)
         for x in range(0, numx):
             for y in range(0, numy):
                 scene.addPhoto(QRect(x * photoWidth, y * photoHeight, photoWidth, photoHeight), f.next())
@@ -766,7 +766,7 @@ class PyView(QApplication):
         rows = desc.split('/')
         # Calculate base height
         # - Big photos are twice as high as normal ones
-        baseHeight = CollageSize.height() / (len(rows) + desc.count('B'))
+        baseHeight = round(CollageSize.height() / (len(rows) + desc.count('B')))
         # Loop through all columns
         f = LoopIter(filenames)
         y = 0
@@ -777,7 +777,7 @@ class PyView(QApplication):
                 photoHeight = baseHeight * 2
             else:
                 photoHeight = baseHeight
-            photoWidth =  CollageSize.width() / photoCount
+            photoWidth =  round(CollageSize.width() / photoCount)
             for x in range(0, photoCount):
                 scene.addPhoto(QRect(x * photoWidth, y, photoWidth, photoHeight), f.next())
             y += photoHeight
@@ -802,7 +802,7 @@ class PyView(QApplication):
         width, height = [int(i) for i in desc.split(':')]
         CollageAspectRatio = width / height
         CollageSize = QRectF(0, 0, 2048, 2048 * (1 / CollageAspectRatio))
-        self.win.resize(self.win.width(), self.win.width() * (1 / CollageAspectRatio))
+        self.win.resize(self.win.width(), self.win.width() * round(1 / CollageAspectRatio))
         self.arWidget.setAspectRatio(CollageAspectRatio)
         # Save list of displayed photos
         filenames = self.scene.getPhotosPaths()
