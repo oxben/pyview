@@ -33,8 +33,8 @@ RotOffset   = 5.0
 ScaleOffset = 0.05
 SmallScaleOffset = 0.01
 MaxZoom     = 2.0
-FrameRadius = 15.0
-MaxFrameRadius = 60.0
+FrameRadius = 15
+MaxFrameRadius = 60
 FrameWidth  = 10.0
 CollageAspectRatio = (3.0 / 2.0)
 CollageSize = QRectF(0, 0, 2048, 2048 * (1 / CollageAspectRatio))
@@ -393,12 +393,12 @@ class ImageView(QGraphicsView):
         key = event.key()
         if key == Qt.Key_Plus:
             # Increase frame width
-            FrameRadius = min(MaxFrameRadius, FrameRadius + 1.0)
+            FrameRadius = min(MaxFrameRadius, FrameRadius + 1)
             self.viewport().update()
 
         elif key == Qt.Key_Minus:
             # Decrease frame width
-            FrameRadius = max(0, FrameRadius - 1.0)
+            FrameRadius = max(0, FrameRadius - 1)
             self.viewport().update()
 
         elif key == Qt.Key_H:
@@ -567,7 +567,7 @@ class PyView(QApplication):
         # Set window title
         self.win.setWindowTitle("PyView")
         self.win.setWindowIcon(QIcon(os.path.join(self.appPath, 'icons', DefaultPhoto)))
-        self.win.resize(800, 800 * (1 / CollageAspectRatio))
+        self.win.resize(800, 800 * round(1 / CollageAspectRatio))
 
         vbox = QVBoxLayout()
         self.win.setLayout(vbox)
@@ -667,7 +667,7 @@ class PyView(QApplication):
         columns = desc.split('/')
         # Calculate base width
         # - Big photos are twice as wide as normal ones
-        baseWidth = CollageSize.width() / (len(columns) + desc.count('B'))
+        baseWidth = round(CollageSize.width() / (len(columns) + desc.count('B')))
         # Loop through all columns
         f = LoopIter(filenames)
         x = 0
@@ -678,7 +678,7 @@ class PyView(QApplication):
                 photoWidth = baseWidth * 2
             else:
                 photoWidth = baseWidth
-            photoHeight =  CollageSize.height() / photoCount
+            photoHeight =  round(CollageSize.height() / photoCount)
             for y in range(0, photoCount):
                 scene.addPhoto(QRect(x, y * photoHeight, photoWidth, photoHeight), f.next())
             x += photoWidth
