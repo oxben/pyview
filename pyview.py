@@ -380,6 +380,7 @@ class AspectRatioWidget(QWidget):
         '''Event received on window resize'''
         self.updateAspectRatio()
 
+
 #-------------------------------------------------------------------------------
 class ImageView(QGraphicsView):
     '''GraphicsView containing the scene'''
@@ -470,6 +471,7 @@ class ImageView(QGraphicsView):
             for item in items:
                 if isinstance(item, PhotoItem):
                     super(ImageView, self).wheelEvent(event)
+
 
 #-------------------------------------------------------------------------------
 class HelpItem(QGraphicsItem):
@@ -567,6 +569,7 @@ class CollageScene(QGraphicsScene):
         logger.debug("Current photos: %s", str(paths))
         return paths
 
+
 #-------------------------------------------------------------------------------
 class LoopIter:
     '''Infinite iterator: loop on list elements, wrapping to first element when last element is reached'''
@@ -585,6 +588,7 @@ class LoopIter:
 
     def next(self):
         return self.__next__()
+
 
 #-------------------------------------------------------------------------------
 class PyView(QApplication):
@@ -844,6 +848,7 @@ class PyView(QApplication):
         global FrameColor
         FrameColor = QColorDialog.getColor()
         self.gfxView.setBackgroundBrush(QBrush(FrameColor))
+
 
 #-------------------------------------------------------------------------------
 def usage():
