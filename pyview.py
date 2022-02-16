@@ -24,11 +24,6 @@ from PyQt5.QtGui import QPainter, QPen, QBrush, QPixmap, QImage, QIcon, QDrag, Q
 
 from PyQt5.QtCore import Qt, QRect, QRectF, QPoint, QPointF, QMimeData
 
-# Unused imports
-# from PyQt5.QtCore import QObject, QSize, QUrl
-# from PyQt5.QtWidgets import QHBoxLayout
-#from urllib.parse import *
-
 RotOffset   = 5.0
 ScaleOffset = 0.05
 SmallScaleOffset = 0.01
@@ -64,15 +59,17 @@ HelpCommands = [
     ('F',             'Fit photo into frame (fill frame)'),
     ('Shitf + F',     'Fit photo into frame (fit both dimensions)'),
     ('Numpad /',      'Reset photo position, scale and rotation'),
+    ('D',             'Toggle dark theme'),
 ]
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
 
 #-------------------------------------------------------------------------------
 class PhotoFrameItem(QGraphicsItem):
     '''The frame around a photo'''
+
     def __init__(self, rect, parent=None):
         super(PhotoFrameItem, self).__init__(parent)
         self.rect = rect
@@ -84,6 +81,7 @@ class PhotoFrameItem(QGraphicsItem):
         self.setAcceptDrops(True)
         self.setAcceptHoverEvents(True)
 
+    #-------------------------------------------------------
     def setPhoto(self, photo, reset=True):
         '''Set PhotoItem associated to this frame'''
         self.photo = photo
@@ -93,6 +91,7 @@ class PhotoFrameItem(QGraphicsItem):
             self.fitPhoto()
         self.update()
 
+    #-------------------------------------------------------
     def fitPhoto(self, fillAllFrame=True):
         '''Fit photo to frame'''
         photoWidth = self.photo.pixmap().width()
@@ -119,10 +118,12 @@ class PhotoFrameItem(QGraphicsItem):
             elif heightRatio > 1:
                 self.photo.setScale(frameHeight / photoHeight)
 
+    #-------------------------------------------------------
     def boundingRect(self):
         '''Return bouding rectangle'''
         return QRectF(self.rect)
 
+    #-------------------------------------------------------
     def paint(self, painter, option, widget=None):
         '''Paint widget'''
         pen = painter.pen()
@@ -135,15 +136,18 @@ class PhotoFrameItem(QGraphicsItem):
                                 self.rect.width(), self.rect.height(),
                                 FrameRadius, FrameRadius)
 
+    #-------------------------------------------------------
     def hoverEnterEvent(self, event):
         '''Handle mouse hover event'''
         # Request keyboard events
         self.setFocus()
 
+    #-------------------------------------------------------
     def hoverLeaveEvent(self, event):
         '''Handle mouse leave event'''
         self.clearFocus()
 
+    #-------------------------------------------------------
     def keyReleaseEvent(self, event):
         '''Handle key release event'''
         logger.debug(str(event.key()))
@@ -168,6 +172,7 @@ class PhotoFrameItem(QGraphicsItem):
             rot = ((self.photo.rotation() // 90) + rotInc) * 90
             self.photo.setRotation(rot)
 
+    #-------------------------------------------------------
     def mouseDoubleClickEvent(self, event):
         '''Handle mouse double-click event'''
         global LastDirectory
@@ -180,6 +185,7 @@ class PhotoFrameItem(QGraphicsItem):
         if filename:
             LastDirectory = os.path.dirname(filename)
 
+    #-------------------------------------------------------
     def dragEnterEvent(self, event):
         '''Handle mouse drag event'''
         logger.debug('dragEnterEvent')
@@ -189,6 +195,7 @@ class PhotoFrameItem(QGraphicsItem):
         else:
             event.ignore()
 
+    #-------------------------------------------------------
     def dropEvent(self, event):
         '''Handle mouse drop event'''
         mimeData = event.mimeData()
@@ -220,6 +227,8 @@ class PhotoFrameItem(QGraphicsItem):
 #-------------------------------------------------------------------------------
 class PhotoItem(QGraphicsPixmapItem):
     '''A photo item'''
+
+    #-------------------------------------------------------
     def __init__(self, filename):
         self.filename = filename
         super(PhotoItem, self).__init__(QPixmap(self.filename), parent=None)
@@ -232,6 +241,7 @@ class PhotoItem(QGraphicsPixmapItem):
                       QGraphicsItem.ItemIsMovable |
                       QGraphicsItem.ItemStacksBehindParent)
 
+    #-------------------------------------------------------
     def setPhoto(self, filename):
         pixmap = QPixmap(filename)
         if pixmap.width() > 0:
@@ -240,10 +250,12 @@ class PhotoItem(QGraphicsPixmapItem):
             super(PhotoItem, self).setPixmap(pixmap)
             self.reset()
 
+    #-------------------------------------------------------
     def setPixmap(self, pixmap):
         super(PhotoItem, self).setPixmap(pixmap)
         self.reset()
 
+    #-------------------------------------------------------
     def reset(self):
         # Center photo in frame
         if self.parentItem() != None:
@@ -258,11 +270,13 @@ class PhotoItem(QGraphicsPixmapItem):
         self.setScale(1.0)
         self.setRotation(0.0)
 
+    #-------------------------------------------------------
     def mouseDoubleClickEvent(self, event):
         if self.parentItem():
             # Forward event to parent frame
             self.parentItem().mouseDoubleClickEvent(event)
 
+    #-------------------------------------------------------
     def wheelEvent(self, event):
         scale = self.scale()
         rot = self.rotation()
@@ -296,12 +310,14 @@ class PhotoItem(QGraphicsPixmapItem):
             self.setRotation(rot)
             logger.debug('scale=%f rotation=%f', scale, rot)
 
+    #-------------------------------------------------------
     def mousePressEvent(self, event):
         if event.button() == Qt.RightButton:
             self.dragStartPosition = event.pos()
         else:
             super(PhotoItem, self).mousePressEvent(event)
 
+    #-------------------------------------------------------
     def mouseMoveEvent(self, event):
         if event.buttons() & Qt.RightButton:
             if (event.pos() - self.dragStartPosition).manhattanLength() < QApplication.startDragDistance():
@@ -330,11 +346,13 @@ class AspectRatioWidget(QWidget):
         self.layout.addItem(QSpacerItem(0, 0))
         self.setAspectRatio(aspectRatio)
 
+    #-------------------------------------------------------
     def setAspectRatio(self, aspectRatio):
         '''Set new aspect ratio'''
         self.aspectRatio = aspectRatio
         self.updateAspectRatio()
 
+    #-------------------------------------------------------
     def updateAspectRatio(self):
         '''
         Update layout direction and stretch of spacer items, based on current
@@ -356,6 +374,7 @@ class AspectRatioWidget(QWidget):
         self.layout.setStretch(1, int(widgetStretch))
         self.layout.setStretch(2, int(outerStretch))
 
+    #-------------------------------------------------------
     def resizeEvent(self, event):
         '''Event received on window resize'''
         self.updateAspectRatio()
@@ -363,6 +382,8 @@ class AspectRatioWidget(QWidget):
 #-------------------------------------------------------------------------------
 class ImageView(QGraphicsView):
     '''GraphicsView containing the scene'''
+
+    #-------------------------------------------------------
     def __init__(self, parent=None):
         super(ImageView, self).__init__(parent)
         self.setRenderHints(QPainter.Antialiasing | QPainter.SmoothPixmapTransform)
@@ -371,6 +392,7 @@ class ImageView(QGraphicsView):
         self.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.helpItem = None
 
+    #-------------------------------------------------------
     def save(self, filename):
         '''Save scene to image file'''
         self.scene().clearSelection()
@@ -385,6 +407,7 @@ class ImageView(QGraphicsView):
         del painter
         logger.info("Collage saved to file: %s", OutFileName)
 
+    #-------------------------------------------------------
     def keyReleaseEvent(self, event):
         global FrameRadius
         global OutFileName
@@ -422,13 +445,16 @@ class ImageView(QGraphicsView):
             # Pass event to default handler
             super(ImageView, self).keyReleaseEvent(event)
 
+    #-------------------------------------------------------
     def heightForWidth(self, w):
         logger.debug('heightForWidth(%d)', w)
         return w
 
+    #-------------------------------------------------------
     def resizeEvent(self, event):
         self.fitInView(CollageSize, Qt.KeepAspectRatio)
 
+    #-------------------------------------------------------
     def wheelEvent(self, event):
         # Filter wheel events
         items = self.items(event.pos())
@@ -441,13 +467,17 @@ class ImageView(QGraphicsView):
 #-------------------------------------------------------------------------------
 class HelpItem(QGraphicsItem):
     '''Online help'''
-    def __init__(self, rect, parent=None):
+
+    #-------------------------------------------------------
+    def __init__(self, point, parent=None):
         super(HelpItem, self).__init__(parent)
         self.rect = rect
 
+    #-------------------------------------------------------
     def boundingRect(self):
         return QRectF(self.rect)
 
+    #-------------------------------------------------------
     def paint(self, painter, option, widget=None):
         painter.setRenderHint(QPainter.Antialiasing)
 
@@ -485,11 +515,13 @@ class HelpItem(QGraphicsItem):
 #-------------------------------------------------------------------------------
 class CollageScene(QGraphicsScene):
     '''Scene containing the frames and the photos'''
+
     def __init__(self):
         super(CollageScene, self).__init__()
         self.bgRect = None
         self._initBackground()
 
+    #-------------------------------------------------------
     def addPhoto(self, rect, filepath):
         '''Add a photo item to the scene'''
         logger.info('Add image: %s', filepath)
@@ -500,11 +532,13 @@ class CollageScene(QGraphicsScene):
         # Add frame to scene
         self.addItem(frame)
 
+    #-------------------------------------------------------
     def clear(self):
         '''Remove all items from the scene'''
         super(CollageScene, self).clear()
         self._initBackground()
 
+    #-------------------------------------------------------
     def _initBackground(self):
         '''Add rect to provide background for PhotoFrameItem's'''
         pen = QPen(FrameBgColor)
@@ -513,6 +547,7 @@ class CollageScene(QGraphicsScene):
                              CollageSize.width() - FrameWidth, CollageSize.height() - FrameWidth)
         self.addRect(self.bgRect, pen, brush)
 
+    #-------------------------------------------------------
     def getPhotosPaths(self):
         '''Return list containing the paths of all the photos in the scene'''
         paths = []
@@ -527,6 +562,7 @@ class CollageScene(QGraphicsScene):
 #-------------------------------------------------------------------------------
 class LoopIter:
     '''Infinite iterator: loop on list elements, wrapping to first element when last element is reached'''
+
     def __init__(self, l):
         self.i = 0
         self.l = l
@@ -559,6 +595,7 @@ class PyView(QApplication):
         self.initUI()
         self.win.show()
 
+    #-------------------------------------------------------
     def initUI(self):
         '''Init UI of the PyView application'''
         # The QWidget widget is the base class of all user interface objects in PyQt5.
@@ -641,6 +678,7 @@ class PyView(QApplication):
 
         self.gfxView.setScene(self.scene)
 
+    #-------------------------------------------------------
     def setLayout(self, funcname, *args):
         '''Set collage new layout'''
         logger.debug('funcname=%s *args=%s', funcname, str(args))
@@ -662,6 +700,7 @@ class PyView(QApplication):
             for y in range(0, numy):
                 scene.addPhoto(QRect(x * photoWidth, y * photoHeight, photoWidth, photoHeight), f.next())
 
+    #-------------------------------------------------------
     def createColumnCollage(self, scene, desc):
         '''Create a collage based on the string passed in'''
         columns = desc.split('/')
@@ -683,6 +722,7 @@ class PyView(QApplication):
                 scene.addPhoto(QRect(x, y * photoHeight, photoWidth, photoHeight), f.next())
             x += photoWidth
 
+    #-------------------------------------------------------
     def createRowCollage(self, scene, desc):
         '''Create a collage based on the string passed in'''
         rows = desc.split('/')
@@ -704,6 +744,7 @@ class PyView(QApplication):
                 scene.addPhoto(QRect(x * photoWidth, y, photoWidth, photoHeight), f.next())
             y += photoHeight
 
+    #-------------------------------------------------------
     def layoutChangedHandler(self, desc):
         '''Handler for layoutCombo signal'''
         global filenames
@@ -714,6 +755,7 @@ class PyView(QApplication):
         funcname, args = self.currentLayout
         self.setLayout(funcname, *args)
 
+    #-------------------------------------------------------
     def aspectRatioChangedHandler(self, desc):
         '''Handler for aspectRatioCombo signal'''
         global CollageAspectRatio
@@ -733,6 +775,7 @@ class PyView(QApplication):
         self.setLayout(funcname, *args)
         #self.gfxView.setScene(self.scene)
 
+    #-------------------------------------------------------
     def newCollage(self):
         '''New collage'''
         ret = QMessageBox.question(self.win,
@@ -744,6 +787,7 @@ class PyView(QApplication):
             funcname, args = self.currentLayout
             self.setLayout(funcname, *args)
 
+    #-------------------------------------------------------
     def saveCollage(self, saveas=True):
         '''Save action handler'''
         global OutFileName
@@ -760,6 +804,7 @@ class PyView(QApplication):
             self.win.setWindowTitle('PyView - %s' % OutFileName)
             self.gfxView.save(OutFileName)
 
+    #-------------------------------------------------------
     def setFrameColor(self):
         '''Set color of the photo frames'''
         global FrameColor
