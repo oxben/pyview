@@ -20,7 +20,7 @@ from PyQt5.QtWidgets import QToolBar, QLabel, QComboBox
 from PyQt5.QtWidgets import QGraphicsItem, QGraphicsPixmapItem, QGraphicsView, QGraphicsScene
 from PyQt5.QtWidgets import QFileDialog, QMessageBox, QOpenGLWidget, QColorDialog
 
-from PyQt5.QtGui import QPainter, QPen, QBrush, QPixmap, QImage, QIcon, QDrag, QColor
+from PyQt5.QtGui import QPainter, QPen, QBrush, QPixmap, QImage, QIcon, QDrag, QColor, QPalette
 
 from PyQt5.QtCore import Qt, QRect, QRectF, QPoint, QPointF, QMimeData
 
@@ -39,6 +39,7 @@ FrameColor = Qt.white
 FrameBgColor = QColor(216, 216, 216)
 LastDirectory = None
 DefaultPhoto = 'icon-photo-128x128.png'
+DarkTheme = False
 
 OpenGLRender = False
 
@@ -411,6 +412,8 @@ class ImageView(QGraphicsView):
     def keyReleaseEvent(self, event):
         global FrameRadius
         global OutFileName
+        global DarkTheme
+
         logger.debug('Key event: %d', event.key())
         modifiers = event.modifiers()
         key = event.key()
@@ -424,12 +427,16 @@ class ImageView(QGraphicsView):
             FrameRadius = max(0, FrameRadius - 1)
             self.viewport().update()
 
+        elif key == Qt.Key_D:
+            # Switch dark theme
+            app.setDarkTheme(not DarkTheme)
+
         elif key == Qt.Key_H:
             # Show help
             if self.helpItem:
                 self.helpItem.setVisible(not self.helpItem.isVisible())
             else:
-                self.helpItem = HelpItem(QRect(50, 50, 700, 500))
+                self.helpItem = HelpItem(QPoint(50, 50))
                 self.scene().addItem(self.helpItem)
 
         elif key == Qt.Key_S:
@@ -471,7 +478,8 @@ class HelpItem(QGraphicsItem):
     #-------------------------------------------------------
     def __init__(self, point, parent=None):
         super(HelpItem, self).__init__(parent)
-        self.rect = rect
+        lines = len(HelpCommands) + 3
+        self.rect = QRect(point.x(), point.y(), 700, lines * 32)
 
     #-------------------------------------------------------
     def boundingRect(self):
@@ -691,6 +699,32 @@ class PyView(QApplication):
         else:
             func(self.scene)
 
+    #-------------------------------------------------------
+    def setDarkTheme(self, enabled):
+        '''Set dark theme palette'''
+        global DarkTheme
+        DarkTheme = enabled
+        self.setStyle("Fusion")
+        if DarkTheme:
+            palette = QPalette()
+            palette.setColor(QPalette.Window, QColor(53, 53, 53))
+            palette.setColor(QPalette.WindowText, Qt.white)
+            palette.setColor(QPalette.Base, QColor(25, 25, 25))
+            palette.setColor(QPalette.AlternateBase, QColor(53, 53, 53))
+            palette.setColor(QPalette.ToolTipBase, Qt.black)
+            palette.setColor(QPalette.ToolTipText, Qt.white)
+            palette.setColor(QPalette.Text, Qt.white)
+            palette.setColor(QPalette.Button, QColor(53, 53, 53))
+            palette.setColor(QPalette.ButtonText, Qt.white)
+            palette.setColor(QPalette.BrightText, Qt.red)
+            palette.setColor(QPalette.Link, QColor(42, 130, 218))
+            palette.setColor(QPalette.Highlight, QColor(42, 130, 218))
+            palette.setColor(QPalette.HighlightedText, Qt.black)
+            self.setPalette(palette)
+        else:
+            self.setPalette(self.style().standardPalette())
+
+    #-------------------------------------------------------
     def createGridCollage(self, scene, numx, numy):
         '''Create a collage with specified number of rows and columns'''
         f = LoopIter(filenames)
